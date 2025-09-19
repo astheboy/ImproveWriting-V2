@@ -13,6 +13,7 @@
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^3.2.0",
+		"@sveltejs/adapter-static": "^3.0.9",
 		"@sveltejs/kit": "^2.0.0",
 		"@sveltejs/vite-plugin-svelte": "^3.0.0",
 		"svelte": "^4.2.0",
@@ -21,8 +22,8 @@
 		"vite": "^5.0.0"
 	},
 	"dependencies": {
-		"firebase": "^10.12.0",
 		"chart.js": "^4.4.0",
+		"firebase": "^10.12.0",
 		"qrcode": "^1.5.3",
 		"qrcode-reader": "^1.0.4"
 	}
