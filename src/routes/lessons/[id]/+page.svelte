@@ -328,7 +328,7 @@
 	// Go back
 	function goBack() {
 		if (isTeacher) {
-			// 교사는 클래스 관리 페이지로 이동
+			// 교사는 클래스 관리 페이지로 이동 (수업 목록)
 			goto(`/class/${lesson?.classId}`);
 		} else {
 			// 학생은 클래스 목록으로 이동
@@ -369,14 +369,14 @@
 					on:click={goBack}
 					class="text-indigo-600 hover:text-indigo-800 mb-2 flex items-center gap-2"
 				>
-					← {isTeacher ? '레슨 관리로 돌아가기' : '내 클래스로 돌아가기'}
+					← {isTeacher ? '수업 관리로 돌아가기' : '내 클래스로 돌아가기'}
 				</button>
 				
 				<div class="flex justify-between items-start">
 					<div>
 						{#if isTeacher}
 							<div class="text-sm text-gray-500 mb-2">
-								📚 레슨 활동 제어 중
+								🎮 활동 제어 패널
 							</div>
 						{/if}
 						<h1 class="text-3xl font-bold text-gray-800">{lesson.title}</h1>
@@ -385,7 +385,7 @@
 						{/if}
 						{#if isTeacher}
 							<p class="text-xs text-gray-500 mt-2">
-								ℹ️ 이 페이지에서 레슨 활동을 실시간으로 제어하세요. 레슨 생성/삭제는 레슨 관리에서 가능합니다.
+								ℹ️ 이 페이지에서 활동 단계를 실시간 제어하세요. 수업 생성/삭제는 수업 관리 페이지에서 가능합니다.
 							</p>
 						{/if}
 						<div class="flex items-center gap-4 mt-3">

@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { auth, db } from '$lib/firebase/firebase';
 	import { 
-		collection, query, orderBy, where, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp
+		collection, query, orderBy, where, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, getDocs
 	} from 'firebase/firestore';
 
 	export let classData: any;
@@ -73,16 +73,50 @@
 		}
 	}
 
-	// 수업 삭제
-	async function deleteLesson(lessonId: string) {
-		if (confirm('이 수업을 삭제하시겠습니까? 관련 모든 데이터가 삭제됩니다.')) {
-			try {
-				await deleteDoc(doc(db, 'lessons', lessonId));
-				alert('수업이 삭제되었습니다.');
-			} catch (error) {
-				console.error('Error deleting lesson:', error);
-				alert('수업 삭제에 실패했습니다.');
+	// 수업 삭제 (모든 관련 데이터 포함)
+	async function deleteLesson(lessonId: string, lessonTitle: string) {
+		if (!confirm(`"${lessonTitle}" 수업을 삭제하시겠습니까?\n\n⚠️ 주의: 이 작업은 되돌릴 수 없으며, 다음 데이터가 모두 삭제됩니다:\n- 수업 활동 데이터 (이미지, 낱말, 문장)\n- 학생 참여 기록\n- AI 도우미 데이터`)) {
+			return;
+		}
+
+		try {
+			console.log(`수업 삭제 시작: ${lessonTitle} (ID: ${lessonId})`);
+			
+			// 수업의 모든 서브컬렉션 삭제
+			const deletePromises = [];
+			const subCollections = [
+				'sharedImages',
+				'words',
+				'sentences',
+				'aiHelper',
+				'participants'
+			];
+			
+			for (const subCollectionName of subCollections) {
+				try {
+					const subCollectionRef = collection(db, `lessons/${lessonId}/${subCollectionName}`);
+					const subCollectionSnapshot = await getDocs(subCollectionRef);
+					subCollectionSnapshot.docs.forEach(subDoc => {
+						deletePromises.push(deleteDoc(subDoc.ref));
+					});
+					console.log(`서브컬렉션 ${subCollectionName}: ${subCollectionSnapshot.docs.length}개 문서 삭제 예정`);
+				} catch (error) {
+					console.log(`서브컬렉션 lessons/${lessonId}/${subCollectionName} 삭제 중 오류 (무시됨):`, error);
+				}
 			}
+			
+			// 모든 서브 데이터 삭제 실행
+			console.log(`총 ${deletePromises.length}개 서브 데이터 삭제 시작`);
+			await Promise.all(deletePromises);
+			
+			// 수업 문서 자체 삭제
+			await deleteDoc(doc(db, 'lessons', lessonId));
+			
+			console.log('수업 삭제 완료');
+			alert('수업이 성공적으로 삭제되었습니다.');
+		} catch (error) {
+			console.error('수업 삭제 중 오류 발생:', error);
+			alert('수업 삭제 중 오류가 발생했습니다: ' + error.message);
 		}
 	}
 
@@ -246,7 +280,7 @@
 										수업 관리
 									</button>
 									<button 
-										on:click={() => deleteLesson(lesson.id)}
+										on:click={() => deleteLesson(lesson.id, lesson.title)}
 										class="bg-red-500 hover:bg-red-600 text-white text-sm font-bold py-2 px-3 rounded transition-colors"
 										title="수업 삭제"
 									>

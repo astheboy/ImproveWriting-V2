@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { auth, db } from '$lib/firebase/firebase';
 	import { signOut } from 'firebase/auth';
-	import { collection, query, where, onSnapshot, addDoc, updateDoc } from 'firebase/firestore';
+	import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDocs } from 'firebase/firestore';
 	import { goto } from '$app/navigation';
 	import QRCode from 'qrcode';
 	import { browser } from '$app/environment';
@@ -197,6 +197,103 @@
 		printWindow?.print();
 	}
 
+	// 클래스 삭제 함수
+	async function deleteClass(classId: string, className: string) {
+		if (!confirm(`"${className}" 클래스를 삭제하시겠습니까?\n\n⚠️ 주의: 이 작업은 되돌릴 수 없으며, 다음 데이터가 모두 삭제됩니다:\n- 클래스의 모든 수업(레슨)\n- 수업 관련 활동 데이터 (이미지, 낱말, 문장)\n- 학생 참여 기록\n- AI 도우미 데이터`)) {
+			return;
+		}
+
+		try {
+			console.log(`클래스 삭제 시작: ${className} (ID: ${classId})`);
+			
+			// 1. 먼저 해당 클래스의 모든 수업들을 찾아서 삭제
+			const lessonsRef = collection(db, 'lessons');
+			const lessonsQuery = query(lessonsRef, where('classId', '==', classId));
+			const lessonsSnapshot = await getDocs(lessonsQuery);
+			
+			console.log(`찾은 수업 개수: ${lessonsSnapshot.docs.length}`);
+			
+			// 각 수업과 관련된 모든 서브컬렉션 삭제
+			const deletePromises = [];
+			
+			for (const lessonDoc of lessonsSnapshot.docs) {
+				const lessonId = lessonDoc.id;
+				console.log(`수업 삭제 중: ${lessonId}`);
+				
+				// 수업의 서브컬렉션들 삭제
+				const subCollections = [
+					'sharedImages',
+					'words',
+					'sentences',
+					'aiHelper',
+					'participants'
+				];
+				
+				for (const subCollectionName of subCollections) {
+					try {
+						const subCollectionRef = collection(db, `lessons/${lessonId}/${subCollectionName}`);
+						const subCollectionSnapshot = await getDocs(subCollectionRef);
+						subCollectionSnapshot.docs.forEach(subDoc => {
+							deletePromises.push(deleteDoc(subDoc.ref));
+						});
+					} catch (error) {
+						console.log(`서브컬렉션 lessons/${lessonId}/${subCollectionName} 삭제 중 오류 (무시됨):`, error);
+					}
+				}
+				
+				// 수업 문서 자체 삭제
+				deletePromises.push(deleteDoc(lessonDoc.ref));
+			}
+
+			// 2. 클래스 관련 서브컬렉션들도 삭제
+			const classSubCollections = [
+				'appState',
+				'sharedImages',
+				'words',
+				'sentences',
+				'aiHelper'
+			];
+
+			for (const subCollectionName of classSubCollections) {
+				try {
+					const subCollectionRef = collection(db, `classrooms/${classId}/${subCollectionName}`);
+					const subCollectionSnapshot = await getDocs(subCollectionRef);
+					subCollectionSnapshot.docs.forEach(subDoc => {
+						deletePromises.push(deleteDoc(subDoc.ref));
+					});
+				} catch (error) {
+					console.log(`클래스 서브컬렉션 classrooms/${classId}/${subCollectionName} 삭제 중 오류 (무시됨):`, error);
+				}
+			}
+
+			// 3. classMembers 컬렉션에서 해당 클래스 멤버들 삭제
+			try {
+				const membersRef = collection(db, 'classMembers');
+				const membersQuery = query(membersRef, where('classId', '==', classId));
+				const membersSnapshot = await getDocs(membersQuery);
+				membersSnapshot.docs.forEach(memberDoc => {
+					deletePromises.push(deleteDoc(memberDoc.ref));
+				});
+				console.log(`클래스 멤버 ${membersSnapshot.docs.length}개 삭제 예정`);
+			} catch (error) {
+				console.log('classMembers 삭제 중 오류 (무시됨):', error);
+			}
+
+			// 4. 모든 서브 데이터 삭제 실행
+			console.log(`총 ${deletePromises.length}개 서브 데이터 삭제 시작`);
+			await Promise.all(deletePromises);
+			
+			// 5. 마지막으로 클래스 문서 자체 삭제
+			await deleteDoc(doc(db, 'classrooms', classId));
+			
+			console.log('클래스 삭제 완료');
+			alert('클래스가 성공적으로 삭제되었습니다.');
+		} catch (error) {
+			console.error('클래스 삭제 중 오류 발생:', error);
+			alert('클래스 삭제 중 오류가 발생했습니다: ' + error.message);
+		}
+	}
+
 	// 클래스 입장
 	function enterClass(classId: string) {
 		goto(`/class/${classId}`);
@@ -303,13 +400,22 @@
 										📋
 									</button>
 								</div>
-								<button 
-									on:click={() => showQRCode(classroom)}
-									class="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-3 rounded transition-colors flex items-center justify-center gap-2"
-								>
-									<span>📱</span>
-									QR 코드 보기
-								</button>
+								<div class="flex gap-2">
+									<button 
+										on:click={() => showQRCode(classroom)}
+										class="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-3 rounded transition-colors flex items-center justify-center gap-2"
+									>
+										<span>📱</span>
+										QR 코드 보기
+									</button>
+									<button 
+										on:click={() => deleteClass(classroom.id, classroom.className)}
+										class="bg-red-500 hover:bg-red-600 text-white text-sm font-bold py-2 px-3 rounded transition-colors"
+										title="클래스 삭제"
+									>
+										🗑️
+									</button>
+								</div>
 							</div>
 						</div>
 					{/each}
