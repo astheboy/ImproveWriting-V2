@@ -4,11 +4,16 @@
 	import { signOut } from 'firebase/auth';
 	import { collection, query, where, onSnapshot, addDoc } from 'firebase/firestore';
 	import { goto } from '$app/navigation';
+	import QRCode from 'qrcode';
+	import { browser } from '$app/environment';
 
 	let user: any = null;
 	let classrooms: any[] = [];
 	let newClassName = '';
 	let isLoading = false;
+	let showQRModal = false;
+	let selectedClass: any = null;
+	let qrCodeDataUrl = '';
 
 	onMount(() => {
 		// 사용자 상태 구독
@@ -51,27 +56,134 @@
 
 	// 새 클래스 생성
 	async function createClass() {
-		if (!newClassName.trim() || !user) return;
+		if (!newClassName.trim() || !user || !browser) return;
 
 		try {
 			isLoading = true;
 			
-			// 6자리 랜덤 코드 생성
+			// 고유한 클래스 ID 생성
+			const classId = crypto.randomUUID();
+			
+			// 6자리 랜덤 코드 생성 (기존 호환성)
 			const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 			
+			// QR 코드용 URL 생성
+			const qrUrl = `${window.location.origin}/join/${classId}`;
+			
+			// QR 코드 생성
+			const qrCodeDataUrl = await QRCode.toDataURL(qrUrl, {
+				width: 256,
+				margin: 2,
+				color: {
+					dark: '#1f2937',  // 다크 그레이
+					light: '#ffffff' // 화이트
+				}
+			});
+			
 			await addDoc(collection(db, 'classrooms'), {
+				id: classId,
 				className: newClassName.trim(),
 				teacherId: user.uid,
+				teacherName: user.displayName || user.email,
 				joinCode: joinCode,
+				qrCode: qrUrl,
+				qrCodeUrl: qrCodeDataUrl,
+				studentCount: 0,
+				maxStudents: 50,
+				isActive: true,
+				allowJoin: true,
 				createdAt: new Date()
 			});
 
 			newClassName = '';
+			alert('클래스가 성공적으로 생성되었습니다!');
 		} catch (error) {
 			console.error('Create class error:', error);
+			alert('클래스 생성 중 오류가 발생했습니다.');
 		} finally {
 			isLoading = false;
 		}
+	}
+	
+	// QR 코드 모달 열기
+	async function showQRCode(classroom: any) {
+		selectedClass = classroom;
+		
+		// QR 코드가 없으면 생성
+		if (!classroom.qrCodeUrl && browser) {
+			try {
+				const qrUrl = `${window.location.origin}/join/${classroom.id}`;
+				qrCodeDataUrl = await QRCode.toDataURL(qrUrl, {
+					width: 256,
+					margin: 2,
+					color: {
+						dark: '#1f2937',
+						light: '#ffffff'
+					}
+				});
+			} catch (error) {
+				console.error('QR code generation error:', error);
+				qrCodeDataUrl = '';
+			}
+		} else {
+			qrCodeDataUrl = classroom.qrCodeUrl || '';
+		}
+		
+		showQRModal = true;
+	}
+	
+	// QR 코드 모달 닫기
+	function closeQRModal() {
+		showQRModal = false;
+		selectedClass = null;
+		qrCodeDataUrl = '';
+	}
+	
+	// QR 코드 이미지 다운로드
+	function downloadQRCode() {
+		if (!qrCodeDataUrl || !selectedClass || !browser) return;
+		
+		const link = document.createElement('a');
+		link.download = `${selectedClass.className}_QR코드.png`;
+		link.href = qrCodeDataUrl;
+		link.click();
+	}
+	
+	// QR 코드 인쇄
+	function printQRCode() {
+		if (!qrCodeDataUrl || !browser) return;
+		
+		const printWindow = window.open('', '_blank');
+		printWindow?.document.write(`
+			<html>
+				<head>
+					<title>${selectedClass?.className} QR 코드</title>
+					<style>
+						body { 
+							font-family: 'Noto Sans KR', sans-serif;
+							text-align: center;
+							padding: 20px;
+						}
+						h1 { margin-bottom: 20px; }
+						img { max-width: 300px; }
+						.info { margin-top: 20px; font-size: 14px; color: #666; }
+						@media print { 
+							body { margin: 0; }
+						}
+					</style>
+				</head>
+				<body>
+					<h1>${selectedClass?.className}</h1>
+					<img src="${qrCodeDataUrl}" alt="QR Code" />
+					<div class="info">
+						<p>스마트폰으로 QR 코드를 스캔하여 클래스에 참여하세요</p>
+						<p>또는 참여 코드: <strong>${selectedClass?.joinCode}</strong></p>
+					</div>
+				</body>
+			</html>
+		`);
+		printWindow?.document.close();
+		printWindow?.print();
 	}
 
 	// 클래스 입장
@@ -156,23 +268,36 @@
 								</span>
 							</div>
 							
-							<div class="text-sm text-gray-500 mb-4">
+							<div class="text-sm text-gray-500 mb-2">
 								생성일: {new Date(classroom.createdAt.toDate()).toLocaleDateString()}
 							</div>
+							
+							<div class="text-sm text-gray-500 mb-4">
+								👥 참여 학생: {classroom.studentCount || 0}명
+							</div>
 
-							<div class="flex gap-2">
+							<div class="space-y-2">
+								<div class="flex gap-2">
+									<button 
+										on:click={() => enterClass(classroom.id)}
+										class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-2 px-3 rounded transition-colors"
+									>
+										클래스 입장
+									</button>
+									<button 
+										on:click={() => navigator.clipboard.writeText(classroom.joinCode)}
+										class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold py-2 px-3 rounded transition-colors"
+										title="참여 코드 복사"
+									>
+										📋
+									</button>
+								</div>
 								<button 
-									on:click={() => enterClass(classroom.id)}
-									class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-2 px-3 rounded transition-colors"
+									on:click={() => showQRCode(classroom)}
+									class="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-3 rounded transition-colors flex items-center justify-center gap-2"
 								>
-									클래스 입장
-								</button>
-								<button 
-									on:click={() => navigator.clipboard.writeText(classroom.joinCode)}
-									class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold py-2 px-3 rounded transition-colors"
-									title="참여 코드 복사"
-								>
-									📋
+									<span>📱</span>
+									QR 코드 보기
 								</button>
 							</div>
 						</div>
@@ -181,6 +306,65 @@
 			{/if}
 		</div>
 	</div>
+	
+	<!-- QR 코드 모달 -->
+	{#if showQRModal && selectedClass}
+		<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+			<div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
+				<div class="text-center">
+					<h3 class="text-2xl font-bold text-gray-800 mb-4">
+						{selectedClass.className}
+					</h3>
+					<p class="text-gray-600 mb-6">학생들이 QR 코드를 스캔하여 클래스에 참여할 수 있습니다</p>
+					
+					{#if qrCodeDataUrl}
+						<div class="bg-white p-4 rounded-xl border-2 border-gray-200 mb-6">
+							<img 
+								src={qrCodeDataUrl} 
+								alt="QR Code" 
+								class="w-full max-w-[200px] mx-auto"
+							>
+						</div>
+					{:else}
+						<div class="bg-gray-100 p-8 rounded-xl mb-6">
+							<p class="text-gray-500">QR 코드 생성 중...</p>
+						</div>
+					{/if}
+					
+					<div class="text-center mb-6">
+						<p class="text-sm text-gray-500 mb-2">또는 참여 코드 입력:</p>
+						<span class="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg font-mono font-bold text-lg">
+							{selectedClass.joinCode}
+						</span>
+					</div>
+					
+					<div class="flex gap-3">
+						<button 
+							on:click={downloadQRCode}
+							disabled={!qrCodeDataUrl}
+							class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-2 px-3 rounded-lg transition-colors"
+						>
+							📥 다운로드
+						</button>
+						<button 
+							on:click={printQRCode}
+							disabled={!qrCodeDataUrl}
+							class="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-2 px-3 rounded-lg transition-colors"
+						>
+							🖨️ 인쇄
+						</button>
+					</div>
+					
+					<button 
+						on:click={closeQRModal}
+						class="mt-4 w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-3 rounded-lg transition-colors"
+					>
+						닫기
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
 </main>
 
 <style>

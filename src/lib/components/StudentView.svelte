@@ -3,8 +3,10 @@
 	import { auth, db } from '$lib/firebase/firebase';
 	import { 
 		doc, onSnapshot, collection, query, orderBy, addDoc, updateDoc, arrayUnion, arrayRemove,
-		serverTimestamp
+		serverTimestamp, getDoc, setDoc
 	} from 'firebase/firestore';
+	import { GoogleAuthProvider, signInWithPopup, linkWithCredential, signInAnonymously, getAdditionalUserInfo } from 'firebase/auth';
+	import PointsSystem from './PointsSystem.svelte';
 
 	export let classData: any;
 	export let user: any;
@@ -15,6 +17,16 @@
 	let sentences: any[] = [];
 	let aiHelper: any = null;
 	let unsubscribes: Function[] = [];
+	let isLoggingIn = false;
+	let loginError = '';
+	
+	// 포트폴리오 및 포인트 관련 상태
+	let userPoints = 0;
+	let userLevel = 1;
+	let showProfileButton = false; // 프로필 페이지 링크 버튼 표시 여부
+	
+	// 포인트 시스템 컴포넌트 참조
+	let pointsSystemComponent: PointsSystem;
 
 	// 입력 상태
 	let wordInput = '';
@@ -23,8 +35,11 @@
 	let nameInputShown = false;
 	let isSubmitting = false;
 
-	// 사용자 이름 설정 (익명 사용자용)
+	// 사용자 이름 설정
 	let displayName = user?.displayName || user?.email || '';
+	
+	// Google 계정 연동 여부 (익명 사용자만 표시)
+	let showLinkAccountButton = user?.isAnonymous;
 
 	onMount(() => {
 		// 익명 사용자인 경우 이름 입력 요청
@@ -32,7 +47,15 @@
 			nameInputShown = true;
 		}
 		
+		// Google 로그인 사용자는 프로필 버튼 표시
+		showProfileButton = !user?.isAnonymous;
+		
 		setupRealtimeListeners();
+		
+		// 사용자 포인트 & 레벨 가져오기
+		if (user?.uid) {
+			loadUserPointsAndLevel();
+		}
 	});
 
 	onDestroy(() => {
@@ -97,11 +120,173 @@
 		unsubscribes.push(unsubAi);
 	}
 
+	// 사용자 포인트 & 레벨 로드
+	async function loadUserPointsAndLevel() {
+		try {
+			const userRef = doc(db, `users/${user.uid}`);
+			const userDoc = await getDoc(userRef);
+			
+			if (userDoc.exists()) {
+				const userData = userDoc.data();
+				userPoints = userData.points || 0;
+				userLevel = userData.level || 1;
+			} else {
+				// 신규 사용자인 경우 초기값 설정
+				await setDoc(userRef, {
+					points: 0,
+					level: 1,
+					createdAt: serverTimestamp(),
+					isAnonymous: user.isAnonymous
+				});
+			}
+		} catch (error) {
+			console.error('포인트 정보 로드 중 오류:', error);
+		}
+	}
+	
 	// 이름 설정
 	function setStudentName() {
 		if (studentName.trim()) {
 			displayName = studentName.trim();
 			nameInputShown = false;
+		}
+	}
+	
+	// 익명 로그인 처리
+	async function loginAnonymously() {
+		try {
+			isLoggingIn = true;
+			loginError = '';
+			
+			const credential = await signInAnonymously(auth);
+			console.log('익명 로그인 성공');
+			
+			// 익명 사용자에게 이름 입력 요청
+			nameInputShown = true;
+		} catch (error) {
+			console.error('익명 로그인 오류:', error);
+			loginError = '익명 로그인 중 문제가 발생했습니다. 다시 시도해주세요.';
+		} finally {
+			isLoggingIn = false;
+		}
+	}
+	
+	// Google 로그인 처리
+	async function loginWithGoogle() {
+		try {
+			isLoggingIn = true;
+			loginError = '';
+			
+			const provider = new GoogleAuthProvider();
+			const credential = await signInWithPopup(auth, provider);
+			
+			const isNewUser = getAdditionalUserInfo(credential)?.isNewUser;
+			
+			if (isNewUser) {
+				// 신규 사용자 정보 저장
+				const userRef = doc(db, `users/${credential.user.uid}`);
+				await setDoc(userRef, {
+					displayName: credential.user.displayName,
+					email: credential.user.email,
+					photoURL: credential.user.photoURL,
+					points: 0,
+					level: 1,
+					createdAt: serverTimestamp(),
+					isAnonymous: false
+				});
+			}
+			
+			// 프로필 버튼 표시
+			showProfileButton = true;
+			
+			console.log('Google 로그인 성공');
+		} catch (error) {
+			console.error('Google 로그인 오류:', error);
+			loginError = 'Google 로그인 중 문제가 발생했습니다. 다시 시도해주세요.';
+		} finally {
+			isLoggingIn = false;
+		}
+	}
+	
+	// 익명 계정을 Google 계정과 연동
+	async function linkWithGoogle() {
+		if (!user) return;
+		
+		try {
+			isLoggingIn = true;
+			loginError = '';
+			
+			const provider = new GoogleAuthProvider();
+			const credential = await signInWithPopup(auth, provider);
+			await linkWithCredential(user, GoogleAuthProvider.credentialFromResult(credential));
+			
+			// 사용자 정보 업데이트
+			const userRef = doc(db, `users/${user.uid}`);
+			await updateDoc(userRef, {
+				displayName: user.displayName,
+				email: user.email,
+				photoURL: user.photoURL,
+				isAnonymous: false,
+				updatedAt: serverTimestamp()
+			});
+			
+			// 계정 연동 버튼 숨김 & 프로필 버튼 표시
+			showLinkAccountButton = false;
+			showProfileButton = true;
+			
+			console.log('계정 연동 성공');
+			alert('계정이 성공적으로 연동되었습니다!');
+		} catch (error) {
+			console.error('계정 연동 오류:', error);
+			loginError = '계정 연동 중 문제가 발생했습니다. 다시 시도해주세요.';
+		} finally {
+			isLoggingIn = false;
+		}
+	}
+	
+	// 포인트 지급 함수
+	async function awardPoints(points: number, reason: string) {
+		if (!user?.uid) return;
+		
+		try {
+			const userRef = doc(db, `users/${user.uid}`);
+			const userDoc = await getDoc(userRef);
+			
+			let currentData = { points: 0, level: 1 };
+			if (userDoc.exists()) {
+				currentData = userDoc.data() as any;
+			}
+			
+			const newPoints = (currentData.points || 0) + points;
+			const oldLevel = currentData.level || 1;
+			const newLevel = Math.floor(newPoints / 100) + 1;
+			
+			// Firestore에 업데이트
+			await updateDoc(userRef, {
+				points: newPoints,
+				level: newLevel,
+				updatedAt: serverTimestamp()
+			});
+			
+			// 상태 업데이트
+			userPoints = newPoints;
+			userLevel = newLevel;
+			
+			// 포인트 애니메이션 트리거
+			if (pointsSystemComponent) {
+				pointsSystemComponent.triggerPointsAnimation(points);
+				
+				// 레벨업 검사
+				if (newLevel > oldLevel) {
+					setTimeout(() => {
+						pointsSystemComponent.triggerLevelUpAnimation(oldLevel, newLevel);
+					}, 1500); // 포인트 애니메이션 후 레벨업
+				}
+			}
+			
+			console.log(`${reason}: ${points}포인트 획득 (${currentData.points} -> ${newPoints})`);
+		} catch (error) {
+			console.error('포인트 지급 오류:', error);
 		}
 	}
 
@@ -116,6 +301,10 @@
 				authorId: user.uid,
 				createdAt: serverTimestamp()
 			});
+			
+			// 낱말 작성으로 5 포인트 획득
+			await awardPoints(5, '낱말 작성');
+			
 			wordInput = '';
 		} catch (error) {
 			console.error('Error submitting word:', error);
@@ -138,6 +327,10 @@
 				likesBy: [],
 				createdAt: serverTimestamp()
 			});
+			
+			// 문장 작성으로 10 포인트 획득
+			await awardPoints(10, '문장 작성');
+			
 			sentenceInput = '';
 		} catch (error) {
 			console.error('Error submitting sentence:', error);
@@ -147,8 +340,8 @@
 		}
 	}
 
-	// 공감(좋아요) 토글
-	async function toggleLike(sentenceId: string, currentLikes: string[]) {
+	// 공감(좋아요) 클릭 처리 (포인트 지급 포함)
+	async function handleLikeClick(sentenceId: string, currentLikes: string[], authorId: string) {
 		try {
 			const sentenceRef = doc(db, `classrooms/${classData.id}/sentences`, sentenceId);
 			const userHasLiked = currentLikes.includes(user.uid);
@@ -163,6 +356,30 @@
 				await updateDoc(sentenceRef, {
 					likesBy: arrayUnion(user.uid)
 				});
+				
+				// 좋아요를 눈르는 사람에게 3포인트 지급
+				await awardPoints(3, '좋아요 누르기');
+				
+				// 좋아요를 받는 작성자에게 5포인트 지급 (다른 사람이 누른 경우)
+				if (authorId !== user.uid) {
+					try {
+						const authorRef = doc(db, `users/${authorId}`);
+						const authorDoc = await getDoc(authorRef);
+						
+						if (authorDoc.exists()) {
+							const authorData = authorDoc.data();
+							const newPoints = (authorData.points || 0) + 5;
+							
+							await updateDoc(authorRef, {
+								points: newPoints,
+								level: Math.floor(newPoints / 100) + 1,
+								updatedAt: serverTimestamp()
+							});
+						}
+					} catch (error) {
+						console.error('작성자 포인트 지급 오류:', error);
+					}
+				}
 			}
 		} catch (error) {
 			console.error('Error toggling like:', error);
@@ -224,7 +441,55 @@
 	<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 </svelte:head>
 
-<!-- 이름 입력 모달 -->
+<!-- 로그인 선택 모달 -->
+{#if !user}
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+		<div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
+			<h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">👋 {classData.className}에 오신 것을 환영합니다!</h2>
+			<p class="text-gray-600 mb-6 text-center">참여 방식을 선택해주세요.</p>
+			
+			<div class="space-y-4">
+				<button 
+					on:click={loginAnonymously}
+					disabled={isLoggingIn}
+					class="w-full bg-gray-100 hover:bg-gray-200 disabled:bg-gray-50 text-gray-800 font-bold py-4 rounded-lg text-lg transition-colors flex items-center justify-center gap-2"
+				>
+					<span class="text-2xl">👤</span>
+					<span>이름만 입력하고 빠르게 참여하기</span>
+				</button>
+				
+				<div class="relative flex items-center py-2">
+					<div class="flex-grow border-t border-gray-300"></div>
+					<span class="flex-shrink mx-4 text-gray-500">또는</span>
+					<div class="flex-grow border-t border-gray-300"></div>
+				</div>
+				
+				<button 
+					on:click={loginWithGoogle}
+					disabled={isLoggingIn}
+					class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold py-4 rounded-lg text-lg transition-colors flex items-center justify-center gap-2"
+				>
+					<span class="text-2xl">🔐</span>
+					<span>Google 계정으로 참여하기</span>
+				</button>
+				
+				<p class="text-sm text-gray-600 text-center mt-4">
+					Google 계정으로 참여하면 학습 포트폴리오를 관리하고 모든 활동 내역을 저장할 수 있습니다.
+				</p>
+			</div>
+			
+			{#if loginError}
+				<div class="mt-4 text-red-500 text-center">{loginError}</div>
+			{/if}
+			
+			{#if isLoggingIn}
+				<div class="mt-4 text-blue-500 text-center">로그인 중입니다...</div>
+			{/if}
+		</div>
+	</div>
+{/if}
+
+<!-- 이름 입력 모달 (익명 로그인 후) -->
 {#if nameInputShown}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
 		<div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
@@ -244,24 +509,75 @@
 			>
 				시작하기
 			</button>
+			
+			<div class="mt-4 text-sm text-center text-gray-500">
+				언제든지 Google 계정과 연동하여 활동 내역을 저장할 수 있습니다.
+			</div>
 		</div>
 	</div>
 {/if}
 
 <main class="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4" style="font-family: 'Noto Sans KR', sans-serif;">
 	<div class="max-w-6xl mx-auto space-y-6">
-		<!-- 헤더 -->
-		<div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6">
-			<div class="text-center">
+			<!-- 포인트 시스템 컴포넌트 -->
+			<PointsSystem 
+				bind:this={pointsSystemComponent}
+				currentPoints={userPoints}
+				userName={displayName || '익명'}
+				on:levelUpModalClosed={() => console.log('레벨업 모달이 닫혔습니다.')}
+			/>
+			
+			<!-- 헤더 -->
+			<div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6">
+				<div class="text-center">
 				<h1 class="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
 					{classData.className}
 				</h1>
 				<p class="text-gray-600 mt-2">안녕하세요, {displayName || '익명'}님! 🌟</p>
-				<div class="mt-3">
+				<div class="mt-3 flex flex-wrap items-center justify-center gap-2">
 					<span class="bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium">
 						{statusMessage}
 					</span>
+					
+					<!-- 포인트 및 레벨 표시 -->
+					<span class="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full text-sm font-medium flex items-center gap-1">
+						<span class="text-base">✨</span>
+						<span>{userPoints} 포인트</span>
+					</span>
+					
+					<span class="bg-purple-100 text-purple-800 px-4 py-2 rounded-full text-sm font-medium flex items-center gap-1">
+						<span class="text-base">🏆</span>
+						<span>레벨 {userLevel}</span>
+					</span>
 				</div>
+				
+				<!-- 계정 연동 및 프로필 버튼 -->
+				<div class="mt-3 flex justify-center gap-2">
+					{#if showLinkAccountButton}
+						<button 
+							on:click={linkWithGoogle}
+							class="flex items-center gap-1 px-3 py-1 rounded-lg text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+							disabled={isLoggingIn}
+						>
+							<span class="text-base">🔗</span>
+							<span>Google 계정 연동하기</span>
+						</button>
+					{/if}
+					
+					{#if showProfileButton}
+						<a 
+							href="/student/portfolio/{user.uid}"
+							class="flex items-center gap-1 px-3 py-1 rounded-lg text-sm bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
+						>
+							<span class="text-base">👤</span>
+							<span>내 포트폴리오 보기</span>
+						</a>
+					{/if}
+				</div>
+				
+				{#if loginError}
+					<div class="mt-2 text-red-500 text-sm">{loginError}</div>
+				{/if}
 			</div>
 		</div>
 
@@ -421,13 +737,13 @@
 									<p class="text-gray-800 mb-3 leading-relaxed">{sentence.text}</p>
 									<div class="flex justify-between items-center">
 										<span class="text-sm text-gray-500">✍️ {sentence.authorName || '익명'}</span>
-										<button 
-											on:click={() => toggleLike(sentence.id, sentence.likesBy || [])}
-											class="flex items-center gap-1 px-3 py-1 rounded-full text-sm transition-all transform hover:scale-110 {userHasLiked ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-500'}"
-										>
-											<span class="text-base">{userHasLiked ? '❤️' : '🤍'}</span>
-											<span class="font-medium">{sentence.likesBy?.length || 0}</span>
-										</button>
+											<button 
+												on:click={() => handleLikeClick(sentence.id, sentence.likesBy || [], sentence.authorId)}
+												class="flex items-center gap-1 px-3 py-1 rounded-full text-sm transition-all transform hover:scale-110 {userHasLiked ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-500'}"
+											>
+												<span class="text-base">{userHasLiked ? '❤️' : '🤍'}</span>
+												<span class="font-medium">{sentence.likesBy?.length || 0}</span>
+											</button>
 									</div>
 								</div>
 							{/each}

@@ -22,9 +22,10 @@
 		"vite": "^5.0.0"
 	},
 	"dependencies": {
+		"@types/qrcode": "^1.5.5",
 		"chart.js": "^4.4.0",
 		"firebase": "^10.12.0",
-		"qrcode": "^1.5.3",
+		"qrcode": "^1.5.4",
 		"qrcode-reader": "^1.0.4"
 	}
 }
