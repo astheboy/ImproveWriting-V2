@@ -10,7 +10,8 @@
 
 	// 수업(레슨) 관련 상태
 	let lessons: any[] = [];
-	let isCreatingLesson = false;
+	let showCreateForm = false;  // 폼 표시/숨김 상태
+	let isSubmitting = false;   // 수업 생성 중 상태
 	let newLessonTitle = '';
 	let newLessonDescription = '';
 	let newLessonType = 'creative_writing';
@@ -80,7 +81,7 @@
 		}
 
 		try {
-			isCreatingLesson = true;
+			isSubmitting = true;
 			
 			const lessonData = {
 				classId: classData.id,
@@ -94,17 +95,18 @@
 
 			await addDoc(collection(db, 'lessons'), lessonData);
 			
-			// 폼 초기화
+			// 폼 초기화 및 폼 숨김
 			newLessonTitle = '';
 			newLessonDescription = '';
 			newLessonType = 'creative_writing';
-			isCreatingLesson = false;
+			showCreateForm = false;
+			isSubmitting = false;
 			
 			alert('수업이 성공적으로 생성되었습니다!');
 		} catch (error) {
 			console.error('Error creating lesson:', error);
 			alert('수업 생성에 실패했습니다.');
-			isCreatingLesson = false;
+			isSubmitting = false;
 		}
 	}
 
@@ -207,10 +209,10 @@
 			<div class="flex justify-between items-center mb-6">
 				<h2 class="text-xl font-bold text-gray-800">📚 수업 관리 ({lessons.length}개 레슨)</h2>
 				<button 
-					on:click={() => isCreatingLesson = !isCreatingLesson}
+					on:click={() => showCreateForm = !showCreateForm}
 					class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
 				>
-					{#if isCreatingLesson}
+					{#if showCreateForm}
 						✖ 취소
 					{:else}
 						➕ 새 수업 만들기
@@ -219,7 +221,7 @@
 			</div>
 
 			<!-- 수업 생성 폼 -->
-			{#if isCreatingLesson}
+			{#if showCreateForm}
 				<div class="bg-gray-50 rounded-lg p-4 mb-6 border">
 					<div class="space-y-3">
 						<div>
@@ -253,14 +255,24 @@
 						<div class="flex gap-2 pt-2">
 							<button 
 								on:click={createLesson}
-								disabled={isCreatingLesson}
-								class="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg"
+								disabled={isSubmitting || !newLessonTitle.trim()}
+								class="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg transition-colors"
 							>
-								✓ 수업 생성
+								{#if isSubmitting}
+									⏳ 생성 중...
+								{:else}
+									✓ 수업 생성
+								{/if}
 							</button>
 							<button 
-								on:click={() => isCreatingLesson = false}
-								class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg"
+								on:click={() => {
+									showCreateForm = false;
+									newLessonTitle = '';
+									newLessonDescription = '';
+									newLessonType = 'creative_writing';
+								}}
+								disabled={isSubmitting}
+								class="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-300 text-white font-bold py-2 px-4 rounded-lg transition-colors"
 							>
 								취소
 							</button>
