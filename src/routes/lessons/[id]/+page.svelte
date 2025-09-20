@@ -62,12 +62,39 @@
 
 	async function loadLessonData() {
 		try {
+			console.log('Loading lesson:', lessonId, 'for user:', currentUser?.uid);
 			const lessonDoc = await getDoc(doc(db, 'lessons', lessonId));
 			if (lessonDoc.exists()) {
 				lesson = { id: lessonDoc.id, ...lessonDoc.data() };
-				isTeacher = lesson.createdBy === currentUser?.uid;
+				console.log('Loaded lesson data:', lesson);
+				
+				// Teacher 권한 확인 로직 수정
+				if (lesson.createdBy) {
+					isTeacher = lesson.createdBy === currentUser?.uid;
+				} else {
+					// createdBy가 없는 경우, classId를 통해 클래스 소유자 확인
+					console.log('No createdBy field found, checking classId:', lesson.classId);
+					if (lesson.classId) {
+						try {
+							const classDoc = await getDoc(doc(db, 'classrooms', lesson.classId));
+							if (classDoc.exists()) {
+								const classData = classDoc.data();
+								isTeacher = classData.teacherId === currentUser?.uid;
+								console.log('Class owner check - isTeacher:', isTeacher);
+							}
+						} catch (classError) {
+							console.error('Error checking class ownership:', classError);
+							isTeacher = false;
+						}
+					} else {
+						isTeacher = false;
+					}
+				}
+				
+				console.log('Final isTeacher status:', isTeacher);
 				loading = false;
 			} else {
+				console.error('Lesson not found:', lessonId);
 				alert('레슨을 찾을 수 없습니다.');
 				goto('/dashboard');
 			}
@@ -79,63 +106,99 @@
 	}
 
 	function setupRealtimeListeners() {
-		if (!lesson) return;
+		if (!lesson) {
+			console.warn('Cannot setup listeners: lesson is null');
+			return;
+		}
+
+		console.log('Setting up real-time listeners for lesson:', lessonId);
 
 		// 1. Lesson data listener
 		const lessonRef = doc(db, 'lessons', lessonId);
-		const unsubLesson = onSnapshot(lessonRef, (doc) => {
-			if (doc.exists()) {
-				lesson = { id: doc.id, ...doc.data() };
-				currentPhase = lesson.activityData?.currentPhase || 'waiting';
+		const unsubLesson = onSnapshot(lessonRef, 
+			(doc) => {
+				if (doc.exists()) {
+					lesson = { id: doc.id, ...doc.data() };
+					currentPhase = lesson.activityData?.currentPhase || 'waiting';
+					console.log('Lesson updated, currentPhase:', currentPhase);
+				}
+			},
+			(error) => {
+				console.error('Error in lesson listener:', error);
 			}
-		});
+		);
 		unsubscribes.push(unsubLesson);
 
 		// 2. Shared images listener
 		const imageRef = doc(db, `lessons/${lessonId}/sharedImages/current`);
-		const unsubImages = onSnapshot(imageRef, (doc) => {
-			sharedImages = doc.exists() ? doc.data() : null;
-		});
+		const unsubImages = onSnapshot(imageRef, 
+			(doc) => {
+				sharedImages = doc.exists() ? doc.data() : null;
+			},
+			(error) => {
+				console.error('Error in images listener:', error);
+			}
+		);
 		unsubscribes.push(unsubImages);
 
 		// 3. Words listener
 		const wordsRef = collection(db, `lessons/${lessonId}/words`);
 		const wordsQuery = query(wordsRef, orderBy('createdAt', 'asc'));
-		const unsubWords = onSnapshot(wordsQuery, (snapshot) => {
-			words = snapshot.docs.map(doc => ({
-				id: doc.id,
-				...doc.data()
-			}));
-		});
+		const unsubWords = onSnapshot(wordsQuery, 
+			(snapshot) => {
+				words = snapshot.docs.map(doc => ({
+					id: doc.id,
+					...doc.data()
+				}));
+			},
+			(error) => {
+				console.error('Error in words listener:', error);
+			}
+		);
 		unsubscribes.push(unsubWords);
 
 		// 4. Sentences listener
 		const sentencesRef = collection(db, `lessons/${lessonId}/sentences`);
 		const sentencesQuery = query(sentencesRef, orderBy('createdAt', 'asc'));
-		const unsubSentences = onSnapshot(sentencesQuery, (snapshot) => {
-			sentences = snapshot.docs.map(doc => ({
-				id: doc.id,
-				...doc.data()
-			}));
-		});
+		const unsubSentences = onSnapshot(sentencesQuery, 
+			(snapshot) => {
+				sentences = snapshot.docs.map(doc => ({
+					id: doc.id,
+					...doc.data()
+				}));
+			},
+			(error) => {
+				console.error('Error in sentences listener:', error);
+			}
+		);
 		unsubscribes.push(unsubSentences);
 
 		// 5. AI helper listener
 		const aiRef = doc(db, `lessons/${lessonId}/aiHelper/current`);
-		const unsubAi = onSnapshot(aiRef, (doc) => {
-			aiHelper = doc.exists() ? doc.data() : null;
-		});
+		const unsubAi = onSnapshot(aiRef, 
+			(doc) => {
+				aiHelper = doc.exists() ? doc.data() : null;
+			},
+			(error) => {
+				console.error('Error in AI helper listener:', error);
+			}
+		);
 		unsubscribes.push(unsubAi);
 
 		// 6. Participants listener (for teachers)
 		if (isTeacher) {
 			const participantsRef = collection(db, `lessons/${lessonId}/participants`);
-			const unsubParticipants = onSnapshot(participantsRef, (snapshot) => {
-				participants = snapshot.docs.map(doc => ({
-					id: doc.id,
-					...doc.data()
-				}));
-			});
+			const unsubParticipants = onSnapshot(participantsRef, 
+				(snapshot) => {
+					participants = snapshot.docs.map(doc => ({
+						id: doc.id,
+						...doc.data()
+					}));
+				},
+				(error) => {
+					console.error('Error in participants listener:', error);
+				}
+			);
 			unsubscribes.push(unsubParticipants);
 		}
 	}
