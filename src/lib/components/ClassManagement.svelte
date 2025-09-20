@@ -27,12 +27,47 @@
 	// 수업(레슨) 리스너 설정
 	function setupLessonListener() {
 		const lessonsRef = collection(db, 'lessons');
-		const lessonsQuery = query(lessonsRef, where('classId', '==', classData.id), orderBy('createdAt', 'desc'));
+		
+		// 먼저 인덱스가 필요한 복합 쿼리로 시도
+		try {
+			const lessonsQuery = query(lessonsRef, where('classId', '==', classData.id), orderBy('createdAt', 'desc'));
+			const unsubLessons = onSnapshot(lessonsQuery, (snapshot) => {
+				lessons = snapshot.docs.map(doc => ({
+					id: doc.id,
+					...doc.data()
+				}));
+			}, (error) => {
+				// 인덱스가 아직 준비되지 않은 경우 폴백 쿼리 사용
+				if (error.code === 'failed-precondition') {
+					console.log('Firestore index not ready, using fallback query...');
+					useSimpleLessonQuery();
+				} else {
+					console.error('Lesson query error:', error);
+				}
+			});
+			unsubscribes.push(unsubLessons);
+		} catch (error) {
+			console.error('Query setup error:', error);
+			useSimpleLessonQuery();
+		}
+	}
+	
+	// 인덱스 없이도 작동하는 간단한 쿼리 (정렬은 클라이언트에서 수행)
+	function useSimpleLessonQuery() {
+		const lessonsRef = collection(db, 'lessons');
+		const lessonsQuery = query(lessonsRef, where('classId', '==', classData.id));
 		const unsubLessons = onSnapshot(lessonsQuery, (snapshot) => {
-			lessons = snapshot.docs.map(doc => ({
-				id: doc.id,
-				...doc.data()
-			}));
+			lessons = snapshot.docs
+				.map(doc => ({
+					id: doc.id,
+					...doc.data()
+				}))
+				.sort((a, b) => {
+					// 클라이언트에서 정렬 (createdAt이 서버 타임스탬프인 경우)
+					const aTime = a.createdAt?.toDate?.() || new Date(0);
+					const bTime = b.createdAt?.toDate?.() || new Date(0);
+					return bTime - aTime; // 내림차순
+				});
 		});
 		unsubscribes.push(unsubLessons);
 	}
