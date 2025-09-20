@@ -4,11 +4,12 @@
 	import { auth, db } from '$lib/firebase/firebase';
 	import { signOut, onAuthStateChanged } from 'firebase/auth';
 	import { 
-		collection, query, where, getDocs, doc, getDoc
+		collection, query, where, getDocs, doc, getDoc, orderBy
 	} from 'firebase/firestore';
 
 	let user: any = null;
 	let memberClasses: any[] = [];
+	let classLessons: {[key: string]: any[]} = {};
 	let isLoading = true;
 	let error = '';
 
@@ -69,9 +70,34 @@
 			const classResults = await Promise.all(classPromises);
 			memberClasses = classResults.filter(cls => cls !== null);
 			
+			// 각 클래스의 레슨 로드
+			for (const classItem of memberClasses) {
+				await loadClassLessons(classItem.id);
+			}
+			
 		} catch (err) {
 			console.error('클래스 목록 로드 오류:', err);
 			error = '클래스 목록을 불러오는 중 오류가 발생했습니다.';
+		}
+	}
+
+	async function loadClassLessons(classId: string) {
+		try {
+			const lessonsRef = collection(db, 'lessons');
+			const lessonsQuery = query(
+				lessonsRef,
+				where('classId', '==', classId),
+				orderBy('createdAt', 'desc')
+			);
+			
+			const lessonsSnapshot = await getDocs(lessonsQuery);
+			classLessons[classId] = lessonsSnapshot.docs.map(doc => ({
+				id: doc.id,
+				...doc.data()
+			}));
+		} catch (err) {
+			console.error(`클래스 ${classId} 레슨 로드 오류:`, err);
+			classLessons[classId] = [];
 		}
 	}
 
@@ -98,6 +124,19 @@
 	function enterClass(classId: string) {
 		// TODO: 클래스 내 수업 목록 페이지로 이동 (현재는 기존 student 페이지로)
 		goto(`/student/${classId}`);
+	}
+
+	function goToLesson(lessonId: string) {
+		goto(`/lessons/${lessonId}`);
+	}
+
+	function formatLessonStatus(status: string) {
+		switch(status) {
+			case 'draft': return { text: '준비중', color: 'gray' };
+			case 'active': return { text: '진행중', color: 'green' };
+			case 'completed': return { text: '완료', color: 'blue' };
+			default: return { text: '알 수 없음', color: 'gray' };
+		}
 	}
 </script>
 
@@ -253,6 +292,54 @@
 										</div>
 									</div>
 								</div>
+
+								<!-- 레슨 리스트 -->
+								{#if classLessons[classItem.id] && classLessons[classItem.id].length > 0}
+									<div class="bg-purple-50 rounded-lg p-3 mb-4">
+										<h4 class="text-sm font-semibold text-purple-800 mb-2">📚 레슨 ({classLessons[classItem.id].length}개)</h4>
+										<div class="space-y-2 max-h-32 overflow-y-auto">
+											{#each classLessons[classItem.id].slice(0, 3) as lesson}
+												<div class="flex items-center justify-between p-2 bg-white rounded text-xs">
+													<div class="flex-1 mr-2">
+														<div class="font-medium text-gray-800 truncate">{lesson.title}</div>
+														<div class="text-xs text-gray-500">
+															{lesson.type === 'creative_writing' ? '📝 창의글쓰기' : 
+															 lesson.type === 'vocabulary_game' ? '🎮 단어게임' : '💬 토론'}
+														</div>
+													</div>
+													<div class="flex items-center gap-2">
+														<span class="px-2 py-1 rounded-full text-xs {
+															formatLessonStatus(lesson.status).color === 'gray' ? 'bg-gray-100 text-gray-600' :
+															formatLessonStatus(lesson.status).color === 'green' ? 'bg-green-100 text-green-600' :
+															'bg-blue-100 text-blue-600'
+														}">
+															{formatLessonStatus(lesson.status).text}
+														</span>
+														{#if lesson.status === 'active'}
+															<button 
+																on:click={() => goToLesson(lesson.id)}
+																class="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
+															>
+																참여
+															</button>
+														{:else}
+															<button 
+																on:click={() => goToLesson(lesson.id)}
+																class="bg-gray-600 text-white px-2 py-1 rounded text-xs hover:bg-gray-700"
+															>
+																보기
+															</button>
+														{/if}
+													</div>
+												</div>
+											{/each}
+										</div>
+									</div>
+								{:else}
+									<div class="bg-gray-50 rounded-lg p-3 mb-4 text-center">
+										<div class="text-xs text-gray-500">아직 레슨이 없습니다</div>
+									</div>
+								{/if}
 
 								<div class="flex gap-2">
 									<button 

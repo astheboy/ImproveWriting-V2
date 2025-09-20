@@ -4,7 +4,7 @@
 	import { auth, db, functions } from '$lib/firebase/firebase';
 	import { 
 		doc, setDoc, onSnapshot, collection, query, orderBy, serverTimestamp,
-		addDoc, deleteDoc, updateDoc
+		addDoc, deleteDoc, updateDoc, where, getDocs
 	} from 'firebase/firestore';
 	import { httpsCallable } from 'firebase/functions';
 
@@ -26,6 +26,13 @@
 	let editingWordText = '';
 	let editingSentenceId: string | null = null;
 	let editingSentenceText = '';
+
+	// 레슨 상태
+	let lessons: any[] = [];
+	let isCreatingLesson = false;
+	let newLessonTitle = '';
+	let newLessonDescription = '';
+	let newLessonType = 'creative_writing'; // creative_writing, vocabulary_game, discussion
 
 	// 활동 단계 상태
 	const phases = {
@@ -99,6 +106,17 @@
 			}
 		});
 		unsubscribes.push(unsubAi);
+
+		// 6. 레슨 리스너
+		const lessonsRef = collection(db, `lessons`);
+		const lessonsQuery = query(lessonsRef, where('classId', '==', classData.id), orderBy('createdAt', 'desc'));
+		const unsubLessons = onSnapshot(lessonsQuery, (snapshot) => {
+			lessons = snapshot.docs.map(doc => ({
+				id: doc.id,
+				...doc.data()
+			}));
+		});
+		unsubscribes.push(unsubLessons);
 	}
 
 	// 활동 단계 변경
@@ -299,6 +317,79 @@
 		}
 	}
 
+	// 레슨 생성
+	async function createLesson() {
+		if (!newLessonTitle.trim()) {
+			alert('레슨 제목을 입력해주세요.');
+			return;
+		}
+
+		try {
+			const lessonData = {
+				classId: classData.id,
+				title: newLessonTitle.trim(),
+				description: newLessonDescription.trim(),
+				type: newLessonType,
+				status: 'draft', // draft, active, completed
+				createdAt: serverTimestamp(),
+				createdBy: auth.currentUser?.uid,
+				creatorName: auth.currentUser?.displayName || '선생님',
+				participants: [],
+				activityData: {
+					currentPhase: 'waiting',
+					sharedImages: null,
+					wordSubmissions: 0,
+					sentenceSubmissions: 0
+				}
+			};
+
+			const lessonsRef = collection(db, 'lessons');
+			const docRef = await addDoc(lessonsRef, lessonData);
+			
+			// Reset form
+			newLessonTitle = '';
+			newLessonDescription = '';
+			newLessonType = 'creative_writing';
+			isCreatingLesson = false;
+			
+			alert('수업이 성공적으로 생성되었습니다.');
+		} catch (error) {
+			console.error('Error creating lesson:', error);
+			alert('수업 생성에 실패했습니다.');
+		}
+	}
+
+	// 레슨 삭제
+	async function deleteLesson(lessonId: string) {
+	if (confirm('이 수업을 삭제하시겠습니까? 모든 데이터가 사라집니다.')) {
+			try {
+				await deleteDoc(doc(db, 'lessons', lessonId));
+			} catch (error) {
+				console.error('Error deleting lesson:', error);
+				alert('수업 삭제에 실패했습니다.');
+			}
+		}
+	}
+
+	// 래슨 상태 변경
+	async function updateLessonStatus(lessonId: string, status: string) {
+		try {
+			const lessonRef = doc(db, 'lessons', lessonId);
+			await updateDoc(lessonRef, {
+				status,
+				updatedAt: serverTimestamp()
+			});
+		} catch (error) {
+			console.error('Error updating lesson status:', error);
+			alert('수업 상태 업데이트에 실패했습니다.');
+		}
+	}
+
+	// 레슨으로 이동
+	function goToLesson(lessonId: string) {
+		goto(`/lessons/${lessonId}`);
+	}
+
 	// 뒤로가기
 	function goBack() {
 		goto('/dashboard');
@@ -451,6 +542,157 @@
 					>
 						🔄 활동 초기화
 					</button>
+				{/if}
+			</div>
+		</div>
+
+		<!-- 레슨 관리 -->
+		<div class="bg-white rounded-lg shadow-md p-6">
+			<div class="flex justify-between items-center mb-4">
+				<h2 class="text-xl font-bold text-gray-800">📚 수업 관리 ({lessons.length}개 레슨)</h2>
+				<button 
+					on:click={() => isCreatingLesson = !isCreatingLesson}
+					class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+				>
+					{#if isCreatingLesson}
+						✖ 취소
+					{:else}
+						➕ 새 수업 만들기
+					{/if}
+				</button>
+			</div>
+
+			<!-- 레슨 생성 폼 -->
+			{#if isCreatingLesson}
+				<div class="bg-gray-50 rounded-lg p-4 mb-4 border">
+					<div class="space-y-3">
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">수업 제목</label>
+							<input 
+								bind:value={newLessonTitle}
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+								placeholder="예: 계절에 대한 창의적 글쓰기"
+							>
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">수업 설명</label>
+							<textarea 
+								bind:value={newLessonDescription}
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+								rows="2"
+								placeholder="수업의 목표와 내용을 설명해주세요."
+							></textarea>
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">수업 유형</label>
+							<select 
+								bind:value={newLessonType}
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+							>
+								<option value="creative_writing">📝 창의적 글쓰기</option>
+								<option value="vocabulary_game">🎮 단어 게임</option>
+								<option value="discussion">💬 토론 활동</option>
+							</select>
+						</div>
+						<div class="flex gap-2 pt-2">
+							<button 
+								on:click={createLesson}
+								class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg"
+							>
+								✓ 수업 생성
+							</button>
+							<button 
+								on:click={() => {
+									isCreatingLesson = false;
+									newLessonTitle = '';
+									newLessonDescription = '';
+									newLessonType = 'creative_writing';
+								}}
+								class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg"
+							>
+								✖ 취소
+							</button>
+						</div>
+					</div>
+				</div>
+			{/if}
+
+			<!-- 레슨 리스트 -->
+			<div class="space-y-3">
+				{#if lessons.length === 0}
+					<div class="text-center py-8 text-gray-500">
+						<p>아직 생성된 수업이 없습니다.</p>
+						<p class="text-sm">새 수업을 만들어 학생들과 함께 활동해보세요!</p>
+					</div>
+				{:else}
+					{#each lessons as lesson}
+						<div class="border rounded-lg p-4 hover:shadow-sm transition-shadow">
+							<div class="flex justify-between items-start">
+								<div class="flex-1">
+									<div class="flex items-center gap-2 mb-2">
+										<h3 class="font-semibold text-gray-800">{lesson.title}</h3>
+										<span class="text-xs px-2 py-1 rounded-full {
+											lesson.status === 'draft' ? 'bg-gray-100 text-gray-600' :
+											lesson.status === 'active' ? 'bg-green-100 text-green-600' :
+											'bg-blue-100 text-blue-600'
+										}">
+											{
+												lesson.status === 'draft' ? '준비중' :
+												lesson.status === 'active' ? '진행중' :
+												'완료'
+											}
+										</span>
+										<span class="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-600">
+											{
+												lesson.type === 'creative_writing' ? '📝 창의글쓰기' :
+												lesson.type === 'vocabulary_game' ? '🎮 단어게임' :
+												'💬 토론'
+											}
+										</span>
+									</div>
+									{#if lesson.description}
+										<p class="text-sm text-gray-600 mb-2">{lesson.description}</p>
+									{/if}
+									<div class="flex items-center gap-4 text-xs text-gray-500">
+										<span>👥 참여자: {lesson.participants?.length || 0}명</span>
+										{#if lesson.activityData}
+											<span>📝 단어: {lesson.activityData.wordSubmissions || 0}개</span>
+											<span>✨ 문장: {lesson.activityData.sentenceSubmissions || 0}개</span>
+										{/if}
+									</div>
+								</div>
+								<div class="flex gap-2">
+									{#if lesson.status === 'draft'}
+										<button 
+											on:click={() => updateLessonStatus(lesson.id, 'active')}
+											class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 rounded"
+										>
+											▶ 시작
+										</button>
+									{:else if lesson.status === 'active'}
+										<button 
+											on:click={() => updateLessonStatus(lesson.id, 'completed')}
+											class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded"
+										>
+											⏸ 완료
+										</button>
+									{/if}
+									<button 
+										on:click={() => goToLesson(lesson.id)}
+										class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1 rounded"
+									>
+										📄 열기
+									</button>
+									<button 
+										on:click={() => deleteLesson(lesson.id)}
+										class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded"
+									>
+										🗑️ 삭제
+									</button>
+								</div>
+							</div>
+						</div>
+					{/each}
 				{/if}
 			</div>
 		</div>

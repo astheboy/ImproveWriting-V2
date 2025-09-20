@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { auth, db } from '$lib/firebase/firebase';
 	import { signOut } from 'firebase/auth';
-	import { collection, query, where, onSnapshot, addDoc } from 'firebase/firestore';
+	import { collection, query, where, onSnapshot, addDoc, updateDoc } from 'firebase/firestore';
 	import { goto } from '$app/navigation';
 	import QRCode from 'qrcode';
 	import { browser } from '$app/environment';
@@ -54,21 +54,32 @@
 		}
 	}
 
-	// 새 클래스 생성
+		// 새 클래스 생성
 	async function createClass() {
 		if (!newClassName.trim() || !user || !browser) return;
 
 		try {
 			isLoading = true;
 			
-			// 고유한 클래스 ID 생성
-			const classId = crypto.randomUUID();
-			
 			// 6자리 랜덤 코드 생성 (기존 호환성)
 			const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 			
-			// QR 코드용 URL 생성
-			const qrUrl = `${window.location.origin}/join/${classId}`;
+			// 먼저 Firestore에 문서 추가하여 실제 Document ID 획득
+			const docRef = await addDoc(collection(db, 'classrooms'), {
+				className: newClassName.trim(),
+				teacherId: user.uid,
+				teacherName: user.displayName || user.email,
+				joinCode: joinCode,
+				studentCount: 0,
+				maxStudents: 50,
+				isActive: true,
+				allowJoin: true,
+				createdAt: new Date()
+			});
+			
+			// 실제 Firestore Document ID를 사용하여 QR 코드 생성
+			const actualClassId = docRef.id;
+			const qrUrl = `${window.location.origin}/join/${actualClassId}`;
 			
 			// QR 코드 생성
 			const qrCodeDataUrl = await QRCode.toDataURL(qrUrl, {
@@ -80,19 +91,10 @@
 				}
 			});
 			
-			await addDoc(collection(db, 'classrooms'), {
-				id: classId,
-				className: newClassName.trim(),
-				teacherId: user.uid,
-				teacherName: user.displayName || user.email,
-				joinCode: joinCode,
+			// QR 코드 정보를 문서에 업데이트
+			await updateDoc(docRef, {
 				qrCode: qrUrl,
-				qrCodeUrl: qrCodeDataUrl,
-				studentCount: 0,
-				maxStudents: 50,
-				isActive: true,
-				allowJoin: true,
-				createdAt: new Date()
+				qrCodeUrl: qrCodeDataUrl
 			});
 
 			newClassName = '';
