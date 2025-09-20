@@ -64,6 +64,8 @@
 			// 6자리 랜덤 코드 생성 (기존 호환성)
 			const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 			
+			console.log('Creating new class:', newClassName.trim());
+			
 			// 먼저 Firestore에 문서 추가하여 실제 Document ID 획득
 			const docRef = await addDoc(collection(db, 'classrooms'), {
 				className: newClassName.trim(),
@@ -81,6 +83,9 @@
 			const actualClassId = docRef.id;
 			const qrUrl = `${window.location.origin}/join/${actualClassId}`;
 			
+			console.log('Generated class ID:', actualClassId);
+			console.log('QR URL:', qrUrl);
+			
 			// QR 코드 생성
 			const qrCodeDataUrl = await QRCode.toDataURL(qrUrl, {
 				width: 256,
@@ -91,17 +96,21 @@
 				}
 			});
 			
+			console.log('QR code generated successfully');
+			
 			// QR 코드 정보를 문서에 업데이트
 			await updateDoc(docRef, {
 				qrCode: qrUrl,
 				qrCodeUrl: qrCodeDataUrl
 			});
+			
+			console.log('Class document updated with QR code');
 
 			newClassName = '';
-			alert('클래스가 성공적으로 생성되었습니다!');
+			alert(`클래스가 성공적으로 생성되었습니다!\n클래스 ID: ${actualClassId}\nQR URL: ${qrUrl}`);
 		} catch (error) {
 			console.error('Create class error:', error);
-			alert('클래스 생성 중 오류가 발생했습니다.');
+			alert('클래스 생성 중 오류가 발생했습니다: ' + error.message);
 		} finally {
 			isLoading = false;
 		}

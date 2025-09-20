@@ -41,10 +41,15 @@
 
 	async function loadClassData() {
 		try {
+			console.log('Loading class data for ID:', classId);
+			
 			const classRef = doc(db, 'classrooms', classId);
 			const classDoc = await getDoc(classRef);
 			
+			console.log('Class document exists:', classDoc.exists());
+			
 			if (!classDoc.exists()) {
+				console.error('Class document not found for ID:', classId);
 				error = '존재하지 않는 클래스입니다.';
 				return;
 			}
