@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 	import StudentView from '$lib/components/StudentView.svelte';
 	import { auth, db } from '$lib/firebase/firebase';
-	import { doc, getDoc } from 'firebase/firestore';
+	import { doc, getDoc, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 
 	let classId = '';
 	let classData: any = null;
@@ -37,7 +37,30 @@
 				}
 
 				classData = { id: classDoc.id, ...classDoc.data() };
-				loading = false;
+				
+				// 해당 클래스의 활성 레슨 찾기
+				console.log('활성 레슨 검색 시작 - classId:', classId);
+				const lessonsQuery = query(
+					collection(db, 'lessons'),
+					where('classId', '==', classId),
+					where('status', '==', 'active'),
+					orderBy('createdAt', 'desc'),
+					limit(1)
+				);
+				
+				const lessonsSnapshot = await getDocs(lessonsQuery);
+				
+				if (!lessonsSnapshot.empty) {
+					// 활성 레슨이 있으면 레슨 페이지로 리디렉션
+					const activeLesson = lessonsSnapshot.docs[0];
+					console.log('활성 레슨 발견:', activeLesson.id);
+					goto(`/lessons/${activeLesson.id}`);
+					return;
+				} else {
+					// 활성 레슨이 없으면 기존 클래스 기반 인터페이스 사용
+					console.log('활성 레슨 없음 - 기존 클래스 인터페이스 사용');
+					loading = false;
+				}
 			} catch (err) {
 				console.error('Error loading class:', err);
 				error = '클래스 정보를 불러오는 중 오류가 발생했습니다.';
