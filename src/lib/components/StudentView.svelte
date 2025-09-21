@@ -11,6 +11,7 @@
 
 	export let classData: any;
 	export let user: any;
+	export let lessonId: string = null; // 현재 활성 레슨 ID
 
 	let currentPhase = 'waiting';
 	let sharedImages: any = null;
@@ -66,57 +67,81 @@
 
 	// 실시간 리스너 설정
 	function setupRealtimeListeners() {
-		// 1. 앱 상태 리스너
-		const appStateRef = doc(db, `classrooms/${classData.id}/appState/current`);
-		const unsubAppState = onSnapshot(appStateRef, (docSnapshot) => {
-			if (docSnapshot.exists()) {
-				currentPhase = docSnapshot.data().currentPhase || 'waiting';
-			} else {
-				currentPhase = 'waiting';
-			}
-		});
-		unsubscribes.push(unsubAppState);
+		// lessonId가 없으면 클래스 기반 경로 사용 (하위 호환성)
+		const basePath = lessonId ? `lessons/${lessonId}` : `classrooms/${classData.id}`;
+		
+		// lessonId가 있는 경우 레슨 문서도 구독하여 currentPhase 가져오기
+		if (lessonId) {
+			const lessonRef = doc(db, 'lessons', lessonId);
+			const unsubLesson = onSnapshot(lessonRef, (docSnapshot) => {
+				if (docSnapshot.exists()) {
+					const lessonData = docSnapshot.data();
+					currentPhase = lessonData.activityData?.currentPhase || 'waiting';
+					console.log('Updated currentPhase from lesson:', currentPhase);
+				} else {
+					currentPhase = 'waiting';
+				}
+			});
+			unsubscribes.push(unsubLesson);
+		} else {
+			// 1. 앱 상태 리스너 (기존 클래스 기반)
+			const appStateRef = doc(db, `${basePath}/appState/current`);
+			const unsubAppState = onSnapshot(appStateRef, (docSnapshot) => {
+				if (docSnapshot.exists()) {
+					currentPhase = docSnapshot.data().currentPhase || 'waiting';
+				} else {
+					currentPhase = 'waiting';
+				}
+			});
+			unsubscribes.push(unsubAppState);
+		}
 
 		// 2. 공유 이미지 리스너
-		const imageRef = doc(db, `classrooms/${classData.id}/sharedImages/current`);
+		const imageRef = doc(db, `${basePath}/sharedImages/current`);
 		const unsubImages = onSnapshot(imageRef, (doc) => {
 			if (doc.exists()) {
 				sharedImages = doc.data();
+				console.log('Received shared images:', sharedImages);
 			} else {
 				sharedImages = null;
+				console.log('No shared images found');
 			}
 		});
 		unsubscribes.push(unsubImages);
 
 		// 3. 낱말 리스너 (낱말 구름용)
-		const wordsRef = collection(db, `classrooms/${classData.id}/words`);
+		const wordsRef = collection(db, `${basePath}/words`);
 		const wordsQuery = query(wordsRef, orderBy('createdAt', 'desc'));
 		const unsubWords = onSnapshot(wordsQuery, (snapshot) => {
 			words = snapshot.docs.map(doc => ({
 				id: doc.id,
 				...doc.data()
 			}));
+			console.log('Updated words:', words.length);
 		});
 		unsubscribes.push(unsubWords);
 
 		// 4. 문장 리스너 (실시간 피드용)
-		const sentencesRef = collection(db, `classrooms/${classData.id}/sentences`);
+		const sentencesRef = collection(db, `${basePath}/sentences`);
 		const sentencesQuery = query(sentencesRef, orderBy('createdAt', 'desc'));
 		const unsubSentences = onSnapshot(sentencesQuery, (snapshot) => {
 			sentences = snapshot.docs.map(doc => ({
 				id: doc.id,
 				...doc.data()
 			}));
+			console.log('Updated sentences:', sentences.length);
 		});
 		unsubscribes.push(unsubSentences);
 
 		// 5. AI 도우미 리스너
-		const aiRef = doc(db, `classrooms/${classData.id}/aiHelper/current`);
+		const aiRef = doc(db, `${basePath}/aiHelper/current`);
 		const unsubAi = onSnapshot(aiRef, (doc) => {
 			if (doc.exists()) {
 				aiHelper = doc.data();
+				console.log('Received AI helper:', aiHelper);
 			} else {
 				aiHelper = null;
+				console.log('No AI helper found');
 			}
 		});
 		unsubscribes.push(unsubAi);
@@ -333,9 +358,11 @@
 
 		try {
 			isSubmitting = true;
-			await addDoc(collection(db, `classrooms/${classData.id}/words`), {
+			const basePath = lessonId ? `lessons/${lessonId}` : `classrooms/${classData.id}`;
+			await addDoc(collection(db, `${basePath}/words`), {
 				text: wordInput.trim(),
 				authorId: user.uid,
+				authorName: displayName || '익명',
 				createdAt: serverTimestamp()
 			});
 			
@@ -348,6 +375,7 @@
 			}
 			
 			wordInput = '';
+			console.log('낱말 제출 성공:', wordInput.trim());
 		} catch (error) {
 			console.error('Error submitting word:', error);
 			alert('낱말 제출에 실패했습니다.');
@@ -362,7 +390,8 @@
 
 		try {
 			isSubmitting = true;
-			await addDoc(collection(db, `classrooms/${classData.id}/sentences`), {
+			const basePath = lessonId ? `lessons/${lessonId}` : `classrooms/${classData.id}`;
+			await addDoc(collection(db, `${basePath}/sentences`), {
 				text: sentenceInput.trim(),
 				authorName: displayName || '익명',
 				authorId: user.uid,
@@ -377,6 +406,7 @@
 			}
 			
 			sentenceInput = '';
+			console.log('문장 제출 성공:', sentenceInput.trim());
 		} catch (error) {
 			console.error('Error submitting sentence:', error);
 			alert('문장 제출에 실패했습니다.');
@@ -388,7 +418,8 @@
 	// 공감(좋아요) 클릭 처리 (포인트 지급 포함)
 	async function handleLikeClick(sentenceId: string, currentLikes: string[], authorId: string) {
 		try {
-			const sentenceRef = doc(db, `classrooms/${classData.id}/sentences`, sentenceId);
+			const basePath = lessonId ? `lessons/${lessonId}` : `classrooms/${classData.id}`;
+			const sentenceRef = doc(db, `${basePath}/sentences`, sentenceId);
 			const userHasLiked = currentLikes.includes(user.uid);
 			
 			if (userHasLiked) {
