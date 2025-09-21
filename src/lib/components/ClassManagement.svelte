@@ -15,6 +15,7 @@ import { onMount, onDestroy } from 'svelte';
 	let newLessonTitle = '';
 	let newLessonDescription = '';
 	let newLessonType = 'creative_writing';
+	let newLessonMode = 'controlled'; // 'controlled' 또는 'assignment'
 	let unsubscribes: Function[] = [];
 
 	onMount(() => {
@@ -83,24 +84,47 @@ import { onMount, onDestroy } from 'svelte';
 		try {
 			isSubmitting = true;
 			
-			const lessonData = {
-				classId: classData.id,
-				title: newLessonTitle.trim(),
-				description: newLessonDescription.trim(),
-				type: newLessonType,
-				status: 'active',
-				createdAt: serverTimestamp(),
-				updatedAt: serverTimestamp()
-			};
+				const lessonData = {
+					classId: classData.id,
+					title: newLessonTitle.trim(),
+					description: newLessonDescription.trim(),
+					type: newLessonType,
+					mode: newLessonMode,
+					status: 'active',
+					createdAt: serverTimestamp(),
+					updatedAt: serverTimestamp(),
+					// 과제형일 때 기본 설정
+					...(newLessonMode === 'assignment' && {
+						activityData: {
+							currentPhase: 'images_only', // 과제형은 바로 이미지 단계부터 시작
+							updatedAt: serverTimestamp()
+						}
+					})
+				};
 
-			await addDoc(collection(db, 'lessons'), lessonData);
+			const docRef = await addDoc(collection(db, 'lessons'), lessonData);
+			
+			// 과제형일 때 자동으로 이미지 생성
+			if (newLessonMode === 'assignment') {
+				try {
+					const { httpsCallable } = await import('firebase/functions');
+					const { functions } = await import('$lib/firebase/firebase');
+					const startNewActivityFn = httpsCallable(functions, 'startNewActivityForLesson');
+					await startNewActivityFn({ lessonId: docRef.id });
+					console.log('Assignment mode: Images automatically generated');
+				} catch (imageError) {
+					console.error('Failed to generate images for assignment mode:', imageError);
+					// 이미지 생성 실패해도 수업 생성은 완료된 것으로 처리
+				}
+			}
 			
 			// 폼 초기화 및 폼 숨김
-			newLessonTitle = '';
-			newLessonDescription = '';
-			newLessonType = 'creative_writing';
-			showCreateForm = false;
-			isSubmitting = false;
+				newLessonTitle = '';
+				newLessonDescription = '';
+				newLessonType = 'creative_writing';
+				newLessonMode = 'controlled';
+				showCreateForm = false;
+				isSubmitting = false;
 			
 			alert('수업이 성공적으로 생성되었습니다!');
 		} catch (error) {
@@ -252,6 +276,21 @@ import { onMount, onDestroy } from 'svelte';
 								<option value="discussion">💬 토론 활동</option>
 							</select>
 						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">수업 모드</label>
+							<select 
+								bind:value={newLessonMode}
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+							>
+								<option value="controlled">🎮 실시간 제어형 - 교사가 단계별로 제어</option>
+								<option value="assignment">📝 과제형 - 학생이 자율적으로 진행</option>
+							</select>
+							{#if newLessonMode === 'assignment'}
+								<p class="text-xs text-green-600 mt-1">
+									ℹ️ 과제형은 자동으로 이미지가 제공되며, 학생들이 자율적으로 모든 단계를 진행할 수 있습니다.
+								</p>
+							{/if}
+						</div>
 						<div class="flex gap-2 pt-2">
 							<button 
 								on:click={createLesson}
@@ -270,6 +309,7 @@ import { onMount, onDestroy } from 'svelte';
 									newLessonTitle = '';
 									newLessonDescription = '';
 									newLessonType = 'creative_writing';
+									newLessonMode = 'controlled';
 								}}
 								disabled={isSubmitting}
 								class="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-300 text-white font-bold py-2 px-4 rounded-lg transition-colors"
@@ -314,6 +354,9 @@ import { onMount, onDestroy } from 'svelte';
 										<span>유형: {
 											lesson.type === 'creative_writing' ? '창의적 글쓰기' :
 											lesson.type === 'vocabulary_game' ? '단어 게임' : '토론 활동'
+										}</span>
+										<span>모드: {
+											lesson.mode === 'assignment' ? '과제형' : '실시간 제어형'
 										}</span>
 										<span>생성일: {lesson.createdAt?.toDate?.()?.toLocaleDateString() || '알 수 없음'}</span>
 									</div>

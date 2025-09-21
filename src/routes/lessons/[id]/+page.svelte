@@ -31,6 +31,10 @@
 	let isSubmittingWord = false;
 	let isSubmittingSentence = false;
 	
+	// Assignment mode detection
+	$: isAssignmentMode = lesson?.mode === 'assignment';
+	$: showTeacherControls = isTeacher && !isAssignmentMode;
+	
 	// Activity phases
 	const phases = {
 		waiting: { name: '대기중', color: 'gray' },
@@ -467,9 +471,13 @@
 						{#if lesson.description}
 							<p class="text-sm text-gray-600 mt-1">{lesson.description}</p>
 						{/if}
-						{#if isTeacher}
+						{#if isTeacher && !isAssignmentMode}
 							<p class="text-xs text-gray-500 mt-2">
 								ℹ️ 이 페이지에서 활동 단계를 실시간 제어하세요. 수업 생성/삭제는 수업 관리 페이지에서 가능합니다.
+							</p>
+						{:else if isAssignmentMode}
+							<p class="text-xs text-blue-600 mt-2">
+								📝 과제형 수업: 학생들이 자율적으로 모든 단계를 진행할 수 있습니다. {isTeacher ? '(교사는 지켜보기만 가능)' : ''}
 							</p>
 						{/if}
 						<div class="flex items-center gap-4 mt-3">
@@ -497,7 +505,7 @@
 			</div>
 
 			<!-- Teacher Controls -->
-			{#if isTeacher}
+			{#if showTeacherControls}
 				<div class="bg-white rounded-lg shadow-md p-6">
 					<h2 class="text-xl font-bold text-gray-800 mb-4">🎮 활동 제어 패널</h2>
 					<div class="flex flex-wrap gap-3">
@@ -548,6 +556,44 @@
 							</button>
 						{/if}
 					</div>
+				</div>
+			{/if}
+
+			<!-- Student Controls for Assignment Mode -->
+			{#if isAssignmentMode && !isTeacher}
+				<div class="bg-blue-50 rounded-lg shadow-md p-6">
+					<h2 class="text-xl font-bold text-blue-800 mb-4">🎆 자율 학습 단계</h2>
+					<div class="flex flex-wrap gap-3">
+						{#if currentPhase === 'images_only' || currentPhase === 'waiting'}
+							<button 
+								on:click={() => updatePhase('word_input_active')}
+								class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+							>
+								📝 낱말 작성 시작하기
+							</button>
+						{/if}
+						
+						{#if currentPhase === 'word_input_active'}
+							<button 
+								on:click={() => updatePhase('sentence_input_active')}
+								class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+							>
+								✏️ 문장 작성 시작하기
+							</button>
+						{/if}
+						
+						{#if currentPhase !== 'waiting'}
+							<button 
+								on:click={requestAiInspiration}
+								class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+							>
+								🤖 AI 영감 얻기
+							</button>
+						{/if}
+					</div>
+					<p class="text-sm text-blue-700 mt-3">
+						✨ 위 버튼들을 누러 단계를 진행하세요. 언제든 다음 단계로 넘어갈 수 있어요!
+					</p>
 				</div>
 			{/if}
 
@@ -602,8 +648,8 @@
 
 				<!-- Right: Activity Data -->
 				<div class="space-y-6">
-					<!-- Word Input (Students) -->
-					{#if !isTeacher && currentPhase === 'word_input_active'}
+					<!-- Word Input -->
+					{#if (!isTeacher && currentPhase === 'word_input_active') || (isAssignmentMode && currentPhase === 'word_input_active')}
 						<div class="bg-white rounded-lg shadow-md p-6">
 							<h3 class="text-lg font-bold text-gray-800 mb-4">📝 낱말 입력</h3>
 							<div class="flex gap-2">
@@ -624,8 +670,8 @@
 						</div>
 					{/if}
 
-					<!-- Sentence Input (Students) -->
-					{#if !isTeacher && currentPhase === 'sentence_input_active'}
+					<!-- Sentence Input -->
+					{#if (!isTeacher && currentPhase === 'sentence_input_active') || (isAssignmentMode && currentPhase === 'sentence_input_active')}
 						<div class="bg-white rounded-lg shadow-md p-6">
 							<h3 class="text-lg font-bold text-gray-800 mb-4">✏️ 문장 작성</h3>
 							<div class="space-y-3">
