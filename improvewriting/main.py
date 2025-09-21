@@ -484,9 +484,21 @@ def getAiInspirationForLesson(req: https_fn.Request) -> https_fn.Response:
         words_docs = words_ref.stream()
         words = [doc.to_dict().get('text', '') for doc in words_docs]
         
-        # AI 영감 생성 (실제 AI API 대신 규칙 기반으로 구현)
-        keywords = generate_ai_keywords(words)
-        example_sentence = generate_ai_sentence(words, keywords)
+        # 현재 이미지 정보 가져오기
+        shared_images_ref = db.collection('lessons').document(lesson_id).collection('sharedImages').document('current')
+        images_doc = shared_images_ref.get()
+        image_descriptions = []
+        
+        if images_doc.exists():
+            image_data = images_doc.to_dict()
+            image_descriptions = [
+                image_data.get('alt1', ''),
+                image_data.get('alt2', '')
+            ]
+        
+        # AI 영감 생성 (이미지 설명과 제출된 낱말들을 둘 다 고려)
+        keywords = generate_ai_keywords(words, image_descriptions)
+        example_sentence = generate_ai_sentence(words, keywords, image_descriptions)
         
         # AI 도우미 데이터를 Firestore에 저장
         ai_helper_ref = db.collection('lessons').document(lesson_id).collection('aiHelper').document('current')
@@ -531,38 +543,100 @@ def getAiInspirationForLesson(req: https_fn.Request) -> https_fn.Response:
             headers={'Content-Type': 'application/json'}
         )
 
-def generate_ai_keywords(words):
+def generate_ai_keywords(words, image_descriptions=None):
     """
-    제출된 낱말들을 기반으로 관련 키워드를 생성합니다.
+    이미지 설명과 제출된 낱말들을 기반으로 관련 키워드를 생성합니다.
     """
-    if not words:
-        return ['상상력', '창의성', '이야기', '감정', '자연']
+    keywords = []
     
-    # 간단한 키워드 생성 로직
+    # 1. 이미지 설명 기반 키워드 추출
+    if image_descriptions:
+        image_keywords = []
+        for desc in image_descriptions:
+            if desc:
+                desc_lower = desc.lower()
+                # 자연 관련 단어 추출
+                if any(word in desc_lower for word in ['mountain', 'landscape', '산', '풍경']):
+                    image_keywords.extend(['높이', '웅장한', '고요한'])
+                if any(word in desc_lower for word in ['forest', 'tree', '나무', '숲']):
+                    image_keywords.extend(['생명력', '초록색', '신선한'])
+                if any(word in desc_lower for word in ['child', 'play', '아이', '놀이']):
+                    image_keywords.extend(['즐거운', '활기찬', '순수한'])
+                if any(word in desc_lower for word in ['flower', 'garden', '꽃', '정원']):
+                    image_keywords.extend(['화려한', '예쁜', '향기로운'])
+                if any(word in desc_lower for word in ['lake', 'water', '물', '호수']):
+                    image_keywords.extend(['맑은', '서늘한', '평화로운'])
+                if any(word in desc_lower for word in ['sun', 'light', '했빛', '빛']):
+                    image_keywords.extend(['밝은', '따뜻한', '찬란한'])
+        
+        keywords.extend(list(set(image_keywords))[:4])  # 중복 제거 후 최대 4개
+    
+    # 2. 제출된 낱말 기반 키워드
+    if words:
+        for word in words[:2]:  # 최대 2개
+            if word:
+                keywords.append(f"{word}같은")
+    
+    # 3. 기본 키워드 (다른 키워드가 부족할 때)
     base_keywords = ['창의적인', '아름다운', '신비로운', '따뜻한', '평화로운']
-    word_related = []
+    while len(keywords) < 5:
+        keywords.append(base_keywords[len(keywords) % len(base_keywords)])
     
-    for word in words[:3]:  # 최대 3개까지만 사용
-        if word:
-            word_related.append(f"{word}같은")
-    
-    return base_keywords[:3] + word_related
+    return keywords[:6]  # 최대 6개 반환
 
-def generate_ai_sentence(words, keywords):
+def generate_ai_sentence(words, keywords, image_descriptions=None):
     """
-    낱말들과 키워드를 기반으로 예시 문장을 생성합니다.
+    이미지 설명, 낱말들, 키워드를 기반으로 예시 문장을 생성합니다.
     """
-    if not words:
+    # 이미진 설명에서 주요 요소 추출
+    image_elements = []
+    if image_descriptions:
+        for desc in image_descriptions:
+            if desc:
+                desc_lower = desc.lower()
+                if any(word in desc_lower for word in ['mountain', '산']):
+                    image_elements.append('산')
+                elif any(word in desc_lower for word in ['forest', 'tree', '나무']):
+                    image_elements.append('숲')
+                elif any(word in desc_lower for word in ['child', 'play', '아이']):
+                    image_elements.append('아이들')
+                elif any(word in desc_lower for word in ['flower', 'garden', '꽃']):
+                    image_elements.append('꽃밭')
+                elif any(word in desc_lower for word in ['lake', 'water', '물']):
+                    image_elements.append('물가')
+    
+    # 문장 템플릿 선택
+    if not words and not image_elements:
         return "이미지를 보며 떠오르는 감정과 생각을 자유롭게 표현해보세요."
     
-    # 간단한 문장 템플릿
-    templates = [
-        f"이 {', '.join(words[:2])}를 보니 마치 {random.choice(keywords)} 느낌이 듭니다.",
-        f"{words[0] if words else '이미지'}에서 {random.choice(keywords)} 이야기가 시작될 것 같습니다.",
-        f"만약 내가 이 {words[0] if words else '장면'}에 있다면, {random.choice(keywords)} 모험을 떠날 것입니다."
-    ]
+    # 이미지와 낱말을 결합한 다양한 템플릿
+    templates = []
     
-    return random.choice(templates)
+    if image_elements and words:
+        # 이미지 + 낱말 + 키워드
+        templates.extend([
+            f"{image_elements[0]}에서 {words[0]}을(를) 발견한 순간, {random.choice(keywords)} 마음이 들었습니다.",
+            f"{random.choice(keywords)} {image_elements[0]}에서 {', '.join(words[:2])}이(가) 최사랑을 있는 것 같아요.",
+            f"만약 내가 이 {image_elements[0]}에 있다면, {words[0]}과 함께 {random.choice(keywords)} 시간을 보내고 싶어요."
+        ])
+    elif image_elements:
+        # 이미지 + 키워드
+        templates.extend([
+            f"이 {image_elements[0]}를 보면 {random.choice(keywords)} 느낌이 듭니다.",
+            f"{random.choice(keywords)} {image_elements[0]}에서 어떤 이야기가 펼쳐질까요?",
+            f"{image_elements[0]} 속에서 {random.choice(keywords)} 모험을 상상해보세요."
+        ])
+    elif words:
+        # 낱말 + 키워드
+        templates.extend([
+            f"이 {', '.join(words[:2])}를 보니 {random.choice(keywords)} 느낌이 듭니다.",
+            f"{words[0] if words else '이미지'}에서 {random.choice(keywords)} 이야기가 시작될 것 같습니다."
+        ])
+    
+    if templates:
+        return random.choice(templates)
+    else:
+        return "이미지를 보며 떠오르는 감정과 생각을 자유롭게 표현해보세요."
 
 @https_fn.on_request(cors=cors_options)
 def getAiInspiration(req: https_fn.Request) -> https_fn.Response:

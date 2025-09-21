@@ -501,6 +501,7 @@
 				<div class="bg-white rounded-lg shadow-md p-6">
 					<h2 class="text-xl font-bold text-gray-800 mb-4">🎮 활동 제어 패널</h2>
 					<div class="flex flex-wrap gap-3">
+						<!-- 새로운 활동 시작 버튼 (대기 상태에서만 표시) -->
 						{#if currentPhase === 'waiting'}
 							<button 
 								on:click={startNewActivity}
@@ -516,19 +517,25 @@
 									🚀 새로운 활동 시작
 								{/if}
 							</button>
-						{:else if currentPhase === 'images_only'}
+						{/if}
+						
+						<!-- 낱말 입력 활성화 버튼 (이미지 단계 이후에 표시) -->
+						{#if currentPhase !== 'waiting'}
 							<button 
 								on:click={() => updatePhase('word_input_active')}
-								class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
+								class="{currentPhase === 'word_input_active' ? 'bg-blue-700 ring-2 ring-blue-300' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold py-2 px-4 rounded-lg transition-colors"
 							>
-								📝 낱말 입력 활성화
+								📝 낱말 입력 {currentPhase === 'word_input_active' ? '활성화됨' : '활성화'}
 							</button>
-						{:else if currentPhase === 'word_input_active'}
+						{/if}
+						
+						<!-- 문장 작성 활성화 버튼 (낱말 입력 이후에 표시) -->
+						{#if currentPhase === 'word_input_active' || currentPhase === 'sentence_input_active'}
 							<button 
 								on:click={() => updatePhase('sentence_input_active')}
-								class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg"
+								class="{currentPhase === 'sentence_input_active' ? 'bg-purple-700 ring-2 ring-purple-300' : 'bg-purple-600 hover:bg-purple-700'} text-white font-bold py-2 px-4 rounded-lg transition-colors"
 							>
-								✏️ 문장 작성 활성화
+								✏️ 문장 작성 {currentPhase === 'sentence_input_active' ? '활성화됨' : '활성화'}
 							</button>
 						{/if}
 
@@ -662,8 +669,9 @@
 							<p class="text-sm text-gray-600 mb-3">총 {sortedWords.length}개 유형의 낱말</p>
 							<div class="flex flex-wrap gap-2 justify-center">
 								{#each sortedWords as wordData}
-									{@const fontSize = Math.min(0.9 + (wordData.count / maxCount) * 1.2, 2.0)}
-									{@const opacity = Math.max(0.7 + (wordData.count / maxCount) * 0.3, 1.0)}
+									{@const relativeSize = maxCount > 1 ? (wordData.count / maxCount) : 0.3}
+									{@const fontSize = Math.min(0.8 + relativeSize * 0.6, 1.4)}
+									{@const opacity = Math.min(0.8 + relativeSize * 0.2, 1.0)}
 									{@const bgIntensity = wordData.count === 1 ? 'bg-green-100' : wordData.count === 2 ? 'bg-green-200' : wordData.count >= 3 ? 'bg-green-300' : 'bg-green-100'}
 									<span 
 										class="{bgIntensity} text-green-800 px-3 py-2 rounded-full transition-all hover:scale-105 cursor-default"
