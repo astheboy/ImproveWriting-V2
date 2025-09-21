@@ -7,6 +7,7 @@
 	} from 'firebase/firestore';
 	import { GoogleAuthProvider, signInWithPopup, linkWithCredential, signInAnonymously, getAdditionalUserInfo } from 'firebase/auth';
 	import PointsSystem from './PointsSystem.svelte';
+	import AdvancedPointsSystem from '$lib/gamification/AdvancedPointsSystem.svelte';
 
 	export let classData: any;
 	export let user: any;
@@ -27,6 +28,7 @@
 	
 	// 포인트 시스템 컴포넌트 참조
 	let pointsSystemComponent: PointsSystem;
+	let advancedPointsSystemComponent: AdvancedPointsSystem;
 
 	// 입력 상태
 	let wordInput = '';
@@ -244,11 +246,25 @@
 		}
 	}
 	
-	// 포인트 지급 함수
-	async function awardPoints(points: number, reason: string) {
-		if (!user?.uid) return;
+	// 포인트 지급 함수 (고급 게임화 시스템 적용)
+	async function awardPoints(points: number, reason: string, content?: string, context?: any) {
+		if (!user?.uid) {
+			console.warn('포인트 지급 실패: 사용자가 로그인되지 않음');
+			return false;
+		}
 		
 		try {
+			// 고급 포인트 계산 (다양한 보너스 포함)
+			let finalPoints = points;
+			if (advancedPointsSystemComponent?.calculateAdvancedPoints) {
+				finalPoints = await advancedPointsSystemComponent.calculateAdvancedPoints(
+					points, 
+					reason.includes('낱말') ? 'word' : reason.includes('문장') ? 'sentence' : 'like', 
+					content,
+					context
+				);
+			}
+			
 			const userRef = doc(db, `users/${user.uid}`);
 			const userDoc = await getDoc(userRef);
 			
@@ -257,16 +273,31 @@
 				currentData = userDoc.data() as any;
 			}
 			
-			const newPoints = (currentData.points || 0) + points;
+			const newPoints = (currentData.points || 0) + finalPoints;
 			const oldLevel = currentData.level || 1;
 			const newLevel = Math.floor(newPoints / 100) + 1;
 			
-			// Firestore에 업데이트
-			await updateDoc(userRef, {
-				points: newPoints,
-				level: newLevel,
-				updatedAt: serverTimestamp()
-			});
+			// Firestore에 업데이트 (사용자 문서가 없으던 첫 생성 포함)
+			if (!userDoc.exists()) {
+				// 새 사용자 문서 생성
+				await setDoc(userRef, {
+					displayName: user?.displayName || '익명',
+					email: user?.email || '',
+					photoURL: user?.photoURL || '',
+					points: newPoints,
+					level: newLevel,
+					isAnonymous: user?.isAnonymous || false,
+					createdAt: serverTimestamp(),
+					updatedAt: serverTimestamp()
+				});
+			} else {
+				// 기존 사용자 문서 업데이트
+				await updateDoc(userRef, {
+					points: newPoints,
+					level: newLevel,
+					updatedAt: serverTimestamp()
+				});
+			}
 			
 			// 상태 업데이트
 			userPoints = newPoints;
@@ -274,7 +305,7 @@
 			
 			// 포인트 애니메이션 트리거
 			if (pointsSystemComponent) {
-				pointsSystemComponent.triggerPointsAnimation(points);
+				pointsSystemComponent.triggerPointsAnimation(finalPoints);
 				
 				// 레벨업 검사
 				if (newLevel > oldLevel) {
@@ -282,11 +313,17 @@
 						pointsSystemComponent.triggerLevelUpAnimation(oldLevel, newLevel);
 					}, 1500); // 포인트 애니메이션 후 레벨업
 				}
+			} else {
+				console.warn('포인트 시스템 컴포넌트가 준비되지 않음');
 			}
 			
-			console.log(`${reason}: ${points}포인트 획득 (${currentData.points} -> ${newPoints})`);
+			console.log(`✅ ${reason}: ${finalPoints}포인트 획득! (기본 ${points} + 보너스 ${finalPoints - points}) (${currentData.points || 0} -> ${newPoints}, 레벨: ${oldLevel} -> ${newLevel})`);
+			return true;
 		} catch (error) {
-			console.error('포인트 지급 오류:', error);
+			console.error('❌ 포인트 지급 오류:', error);
+			// 사용자에게 시각적 피드백 제공
+			alert(`포인트 지급 중 오류가 발생했습니다: ${error}`);
+			return false;
 		}
 	}
 
@@ -302,8 +339,13 @@
 				createdAt: serverTimestamp()
 			});
 			
-			// 낱말 작성으로 5 포인트 획득
-			await awardPoints(5, '낱말 작성');
+			// 낱말 작성으로 5 포인트 획득 (콘텐츠와 컴텍스트 포함)
+			const pointAwarded = await awardPoints(5, '낱말 작성', wordInput.trim(), {
+				isEarlyParticipation: false // 필요시 수업 시작 시간 체크 로직 추가
+			});
+			if (!pointAwarded) {
+				console.warn('낱말 제출은 성공했지만 포인트 지급에 실패했습니다.');
+			}
 			
 			wordInput = '';
 		} catch (error) {
@@ -328,8 +370,11 @@
 				createdAt: serverTimestamp()
 			});
 			
-			// 문장 작성으로 10 포인트 획득
-			await awardPoints(10, '문장 작성');
+			// 문장 작성으로 10 포인트 획득 (콘텐츠와 컴텍스트 포함)
+			const pointAwarded = await awardPoints(10, '문장 작성', sentenceInput.trim());
+			if (!pointAwarded) {
+				console.warn('문장 제출은 성공했지만 포인트 지급에 실패했습니다.');
+			}
 			
 			sentenceInput = '';
 		} catch (error) {
@@ -357,8 +402,11 @@
 					likesBy: arrayUnion(user.uid)
 				});
 				
-				// 좋아요를 눈르는 사람에게 3포인트 지급
-				await awardPoints(3, '좋아요 누르기');
+				// 좋아요를 눌르는 사람에게 3포인트 지급
+				const likerPointAwarded = await awardPoints(3, '좋아요 누르기');
+				if (!likerPointAwarded) {
+					console.warn('좋아요는 성공했지만 포인트 지급에 실패했습니다.');
+				}
 				
 				// 좋아요를 받는 작성자에게 5포인트 지급 (다른 사람이 누른 경우)
 				if (authorId !== user.uid) {
@@ -525,6 +573,13 @@
 				currentPoints={userPoints}
 				userName={displayName || '익명'}
 				on:levelUpModalClosed={() => console.log('레벨업 모달이 닫혔습니다.')}
+			/>
+			
+			<!-- 고급 포인트 시스템 컴포넌트 -->
+			<AdvancedPointsSystem 
+				bind:this={advancedPointsSystemComponent}
+				{user}
+				classId={classData.id}
 			/>
 			
 			<!-- 헤더 -->
