@@ -31,9 +31,13 @@
 	let isSubmittingWord = false;
 	let isSubmittingSentence = false;
 	
-	// Assignment mode detection
+	// Assignment mode detection and individual progress
 	$: isAssignmentMode = lesson?.mode === 'assignment';
 	$: showTeacherControls = isTeacher && !isAssignmentMode;
+	
+	// Individual progress state for assignment mode
+	let individualPhase = 'images_only'; // Each student's personal phase
+	let participantProgress = {}; // Track progress of all participants (for teachers)
 	
 	// Activity phases
 	const phases = {
@@ -208,6 +212,46 @@
 			);
 			unsubscribes.push(unsubParticipants);
 		}
+		
+		// 7. Individual progress listener (for assignment mode)
+		if (isAssignmentMode) {
+			if (isTeacher) {
+				// Teachers track all students' progress
+				const progressRef = collection(db, `lessons/${lessonId}/progress`);
+				const unsubProgress = onSnapshot(progressRef, 
+					(snapshot) => {
+						participantProgress = {};
+						snapshot.docs.forEach(doc => {
+							const data = doc.data();
+							participantProgress[data.studentId] = data;
+						});
+						console.log('Participant progress updated:', participantProgress);
+					},
+					(error) => {
+						console.error('Error in progress listener:', error);
+					}
+				);
+				unsubscribes.push(unsubProgress);
+			} else {
+				// Students track only their own progress
+				const myProgressRef = doc(db, `lessons/${lessonId}/progress`, currentUser.uid);
+				const unsubMyProgress = onSnapshot(myProgressRef, 
+					(doc) => {
+						if (doc.exists()) {
+							individualPhase = doc.data().currentPhase || 'images_only';
+							console.log('My individual phase updated:', individualPhase);
+						} else {
+							// Initialize student's progress
+							initializeStudentProgress();
+						}
+					},
+					(error) => {
+						console.error('Error in my progress listener:', error);
+					}
+				);
+				unsubscribes.push(unsubMyProgress);
+			}
+		}
 	}
 
 	// Join lesson as participant
@@ -245,14 +289,80 @@
 		if (!isTeacher && !isAssignmentMode) return;
 		
 		try {
-			const lessonRef = doc(db, 'lessons', lessonId);
-			await updateDoc(lessonRef, {
-				'activityData.currentPhase': newPhase,
-				'activityData.updatedAt': serverTimestamp()
-			});
+			if (isAssignmentMode && !isTeacher) {
+				// Assignment mode: Update individual student progress
+				await updateIndividualPhase(newPhase);
+			} else {
+				// Controlled mode: Update global lesson phase
+				const lessonRef = doc(db, 'lessons', lessonId);
+				await updateDoc(lessonRef, {
+					'activityData.currentPhase': newPhase,
+					'activityData.updatedAt': serverTimestamp()
+				});
+			}
 		} catch (error) {
 			console.error('Error updating phase:', error);
 			alert('단계 변경에 실패했습니다.');
+		}
+	}
+	
+	// Update individual student's phase in assignment mode
+	async function updateIndividualPhase(newPhase: string) {
+		if (!currentUser || !isAssignmentMode) return;
+		
+		try {
+			const progressRef = doc(db, `lessons/${lessonId}/progress`, currentUser.uid);
+			await updateDoc(progressRef, {
+				currentPhase: newPhase,
+				updatedAt: serverTimestamp(),
+				studentName: currentUser.displayName || '학생',
+				studentId: currentUser.uid
+			}).catch(() => 
+				// Document doesn't exist, create it
+				addDoc(collection(db, `lessons/${lessonId}/progress`), {
+					currentPhase: newPhase,
+					updatedAt: serverTimestamp(),
+					studentName: currentUser.displayName || '학생',
+					studentId: currentUser.uid
+				})
+			);
+			
+			// Update local state
+			individualPhase = newPhase;
+			console.log(`Individual phase updated to: ${newPhase}`);
+		} catch (error) {
+			console.error('Error updating individual phase:', error);
+			alert('개인 진행 상태 업데이트에 실패했습니다.');
+		}
+	}
+	
+	// Initialize student's progress when first joining assignment mode lesson
+	async function initializeStudentProgress() {
+		if (!currentUser || !isAssignmentMode || isTeacher) return;
+		
+		try {
+			const progressRef = doc(db, `lessons/${lessonId}/progress`, currentUser.uid);
+			await updateDoc(progressRef, {
+				currentPhase: 'images_only',
+				updatedAt: serverTimestamp(),
+				studentName: currentUser.displayName || '학생',
+				studentId: currentUser.uid,
+				joinedAt: serverTimestamp()
+			}).catch(() => 
+				// Document doesn't exist, create it  
+				addDoc(collection(db, `lessons/${lessonId}/progress`), {
+					currentPhase: 'images_only',
+					updatedAt: serverTimestamp(),
+					studentName: currentUser.displayName || '학생',
+					studentId: currentUser.uid,
+					joinedAt: serverTimestamp()
+				})
+			);
+			
+			individualPhase = 'images_only';
+			console.log('Student progress initialized');
+		} catch (error) {
+			console.error('Error initializing student progress:', error);
 		}
 	}
 
@@ -492,6 +602,9 @@
 							</span>
 							{#if isTeacher}
 								<span class="text-sm text-gray-500">👥 참여자: {lesson.participants?.length || 0}명</span>
+								{#if isAssignmentMode}
+									<span class="text-sm text-blue-600 ml-2">📈 개별 진행 현황 아래에 표시</span>
+								{/if}
 							{/if}
 						</div>
 					</div>
@@ -565,8 +678,13 @@
 			{#if isAssignmentMode && !isTeacher}
 				<div class="bg-blue-50 rounded-lg shadow-md p-6">
 					<h2 class="text-xl font-bold text-blue-800 mb-4">🎆 자율 학습 단계</h2>
+					<div class="mb-3">
+						<span class="text-sm px-3 py-1 rounded-full {phases[individualPhase]?.color === 'gray' ? 'bg-gray-100 text-gray-600' : phases[individualPhase]?.color === 'blue' ? 'bg-blue-100 text-blue-600' : phases[individualPhase]?.color === 'green' ? 'bg-green-100 text-green-600' : 'bg-purple-100 text-purple-600'}">
+							내 진행 단계: {phases[individualPhase]?.name || '알 수 없음'}
+						</span>
+					</div>
 					<div class="flex flex-wrap gap-3">
-						{#if currentPhase === 'images_only' || currentPhase === 'waiting'}
+						{#if individualPhase === 'images_only' || individualPhase === 'waiting'}
 							<button 
 								on:click={() => updatePhase('word_input_active')}
 								class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
@@ -575,7 +693,7 @@
 							</button>
 						{/if}
 						
-						{#if currentPhase === 'word_input_active'}
+						{#if individualPhase === 'word_input_active'}
 							<button 
 								on:click={() => updatePhase('sentence_input_active')}
 								class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
@@ -584,7 +702,7 @@
 							</button>
 						{/if}
 						
-						{#if currentPhase !== 'waiting'}
+						{#if individualPhase !== 'waiting'}
 							<button 
 								on:click={requestAiInspiration}
 								class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
@@ -594,7 +712,34 @@
 						{/if}
 					</div>
 					<p class="text-sm text-blue-700 mt-3">
-						✨ 위 버튼들을 누러 단계를 진행하세요. 언제든 다음 단계로 넘어갈 수 있어요!
+						✨ 당신만의 진행 단계입니다. 다른 학생들과 독립적으로 학습을 진행하세요!
+					</p>
+				</div>
+			{/if}
+
+			<!-- Assignment Mode Progress Tracker (Teacher View) -->
+			{#if isAssignmentMode && isTeacher}
+				<div class="bg-green-50 rounded-lg shadow-md p-6">
+					<h2 class="text-xl font-bold text-green-800 mb-4">📊 학생별 진행 현황</h2>
+					{#if Object.keys(participantProgress).length === 0}
+						<p class="text-gray-500 text-center py-4">아직 참여한 학생이 없습니다.</p>
+					{:else}
+						<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+							{#each Object.values(participantProgress) as progress}
+								<div class="bg-white rounded-lg p-4 border-l-4 {phases[progress.currentPhase]?.color === 'gray' ? 'border-gray-400' : phases[progress.currentPhase]?.color === 'blue' ? 'border-blue-400' : phases[progress.currentPhase]?.color === 'green' ? 'border-green-400' : 'border-purple-400'}">
+									<h3 class="font-semibold text-gray-800 mb-2">{progress.studentName}</h3>
+									<span class="text-sm px-3 py-1 rounded-full {phases[progress.currentPhase]?.color === 'gray' ? 'bg-gray-100 text-gray-600' : phases[progress.currentPhase]?.color === 'blue' ? 'bg-blue-100 text-blue-600' : phases[progress.currentPhase]?.color === 'green' ? 'bg-green-100 text-green-600' : 'bg-purple-100 text-purple-600'}">
+										{phases[progress.currentPhase]?.name || '알 수 없음'}
+									</span>
+									<p class="text-xs text-gray-500 mt-2">
+										마지막 활동: {progress.updatedAt ? new Date(progress.updatedAt.seconds * 1000).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'}) : 'N/A'}
+									</p>
+								</div>
+							{/each}
+						</div>
+					{/if}
+					<p class="text-sm text-green-700 mt-4">
+						💡 과제형 수업에서는 각 학생이 자신만의 속도로 학습을 진행합니다. 실시간으로 업데이트됩니다.
 					</p>
 				</div>
 			{/if}
@@ -651,7 +796,7 @@
 				<!-- Right: Activity Data -->
 				<div class="space-y-6">
 					<!-- Word Input -->
-					{#if (!isTeacher && currentPhase === 'word_input_active') || (isAssignmentMode && currentPhase === 'word_input_active')}
+					{#if (!isTeacher && !isAssignmentMode && currentPhase === 'word_input_active') || (isAssignmentMode && !isTeacher && individualPhase === 'word_input_active') || (isAssignmentMode && isTeacher && currentPhase === 'word_input_active')}
 						<div class="bg-white rounded-lg shadow-md p-6">
 							<h3 class="text-lg font-bold text-gray-800 mb-4">📝 낱말 입력</h3>
 							<div class="flex gap-2">
@@ -673,7 +818,7 @@
 					{/if}
 
 					<!-- Sentence Input -->
-					{#if (!isTeacher && currentPhase === 'sentence_input_active') || (isAssignmentMode && currentPhase === 'sentence_input_active')}
+					{#if (!isTeacher && !isAssignmentMode && currentPhase === 'sentence_input_active') || (isAssignmentMode && !isTeacher && individualPhase === 'sentence_input_active') || (isAssignmentMode && isTeacher && currentPhase === 'sentence_input_active')}
 						<div class="bg-white rounded-lg shadow-md p-6">
 							<h3 class="text-lg font-bold text-gray-800 mb-4">✏️ 문장 작성</h3>
 							<div class="space-y-3">

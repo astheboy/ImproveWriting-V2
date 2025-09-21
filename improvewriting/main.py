@@ -566,7 +566,7 @@ def generate_ai_keywords(words, image_descriptions=None):
                     image_keywords.extend(['화려한', '예쁜', '향기로운'])
                 if any(word in desc_lower for word in ['lake', 'water', '물', '호수']):
                     image_keywords.extend(['맑은', '서늘한', '평화로운'])
-                if any(word in desc_lower for word in ['sun', 'light', '했빛', '빛']):
+                if any(word in desc_lower for word in ['sun', 'light', '햇빛', '빛']):
                     image_keywords.extend(['밝은', '따뜻한', '찬란한'])
         
         keywords.extend(list(set(image_keywords))[:4])  # 중복 제거 후 최대 4개
@@ -616,7 +616,7 @@ def generate_ai_sentence(words, keywords, image_descriptions=None):
         # 이미지 + 낱말 + 키워드
         templates.extend([
             f"{image_elements[0]}에서 {words[0]}을(를) 발견한 순간, {random.choice(keywords)} 마음이 들었습니다.",
-            f"{random.choice(keywords)} {image_elements[0]}에서 {', '.join(words[:2])}이(가) 최사랑을 있는 것 같아요.",
+            f"{random.choice(keywords)} {image_elements[0]}에서 {', '.join(words[:2])}이(가) 춤추고 있는 것 같아요.",
             f"만약 내가 이 {image_elements[0]}에 있다면, {words[0]}과 함께 {random.choice(keywords)} 시간을 보내고 싶어요."
         ])
     elif image_elements:
