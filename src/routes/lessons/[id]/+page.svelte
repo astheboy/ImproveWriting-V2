@@ -141,21 +141,32 @@
 		);
 		unsubscribes.push(unsubImages);
 
-		// 3. Words listener
-		const wordsRef = collection(db, `lessons/${lessonId}/words`);
-		const wordsQuery = query(wordsRef, orderBy('createdAt', 'asc'));
-		const unsubWords = onSnapshot(wordsQuery, 
-			(snapshot) => {
-				words = snapshot.docs.map(doc => ({
-					id: doc.id,
-					...doc.data()
-				}));
-			},
-			(error) => {
-				console.error('Error in words listener:', error);
-			}
-		);
-		unsubscribes.push(unsubWords);
+	// 3. Words listener
+	const wordsRef = collection(db, `lessons/${lessonId}/words`);
+	const wordsQuery = query(wordsRef, orderBy('createdAt', 'asc'));
+	const unsubWords = onSnapshot(wordsQuery, 
+		(snapshot) => {
+			const allWords = snapshot.docs.map(doc => ({
+				id: doc.id,
+				...doc.data()
+			}));
+			
+			// Remove duplicates based on text and authorId combination
+			const uniqueWords = allWords.filter((word, index, arr) => {
+				return arr.findIndex(w => 
+					w.text.toLowerCase().trim() === word.text.toLowerCase().trim() && 
+					w.authorId === word.authorId
+				) === index;
+			});
+			
+			words = uniqueWords;
+			console.log(`Words updated: ${allWords.length} total, ${uniqueWords.length} unique`);
+		},
+		(error) => {
+			console.error('Error in words listener:', error);
+		}
+	);
+	unsubscribes.push(unsubWords);
 
 		// 4. Sentences listener
 		const sentencesRef = collection(db, `lessons/${lessonId}/sentences`);
@@ -530,11 +541,11 @@
 					<!-- Shared Images -->
 					<div class="bg-white rounded-lg shadow-md p-6">
 						<h3 class="text-lg font-bold text-gray-800 mb-4">🖼️ 활동 이미지</h3>
-						{#if sharedImages}
-							<div class="grid grid-cols-2 gap-4">
-								<img src={sharedImages.url1} alt={sharedImages.alt1} class="w-full h-32 object-cover rounded-lg shadow-sm">
-								<img src={sharedImages.url2} alt={sharedImages.alt2} class="w-full h-32 object-cover rounded-lg shadow-sm">
-							</div>
+					{#if sharedImages}
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<img src={sharedImages.url1} alt={sharedImages.alt1} class="w-full h-48 sm:h-40 md:h-48 lg:h-56 object-cover rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+							<img src={sharedImages.url2} alt={sharedImages.alt2} class="w-full h-48 sm:h-40 md:h-48 lg:h-56 object-cover rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+						</div>
 						{:else}
 							<div class="bg-gray-100 h-32 rounded-lg flex items-center justify-center">
 								<p class="text-gray-500">
