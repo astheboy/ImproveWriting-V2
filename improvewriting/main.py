@@ -19,6 +19,18 @@ cors_options = CorsOptions(
 
 set_global_options(max_instances=10)
 
+def get_fallback_images():
+    """
+    기본 이미지 2개를 반환합니다.
+    """
+    return {
+        "url": "https://via.placeholder.com/800x600/4CAF50/FFFFFF?text=Creative+Writing+Image+1",
+        "alt": "Sample image 1 for creative writing"
+    }, {
+        "url": "https://via.placeholder.com/800x600/2196F3/FFFFFF?text=Creative+Writing+Image+2",
+        "alt": "Sample image 2 for creative writing"
+    }
+
 # Unsplash API를 사용한 이미지 가져오기 (무료 대안)
 def get_random_images():
     """
@@ -26,7 +38,7 @@ def get_random_images():
     Unsplash API 키가 없으면 기본 이미지를 반환합니다.
     """
     try:
-        # 무료 이미지 URL들 (교육용)
+        # 무료 이미지 URL들 (교육용) - 모두 다른 이미지로 구성
         sample_images = [
             {
                 "url": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop",
@@ -37,7 +49,7 @@ def get_random_images():
                 "alt": "Peaceful forest with sunlight filtering through trees"
             },
             {
-                "url": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop",
+                "url": "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800&h=600&fit=crop",
                 "alt": "Children playing in a sunny park"
             },
             {
@@ -47,23 +59,45 @@ def get_random_images():
             {
                 "url": "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&h=600&fit=crop",
                 "alt": "Serene lake with mountains in background"
+            },
+            {
+                "url": "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&h=600&fit=crop",
+                "alt": "Misty morning in the mountains"
+            },
+            {
+                "url": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop&ixid=M3w0NjI2NjJ8MHwxfGNvbGxlY3Rpb258MXwxMDcxNzc3NXx8fHx8Mnx8MTY5OTg2NzIwMA",
+                "alt": "Ocean waves at sunset"
+            },
+            {
+                "url": "https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?w=800&h=600&fit=crop",
+                "alt": "City lights at night"
+            },
+            {
+                "url": "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=800&h=600&fit=crop",
+                "alt": "Butterfly on flower"
+            },
+            {
+                "url": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop&rotation=90",
+                "alt": "Snow-covered pine trees"
             }
         ]
         
-        # 랜덤으로 2개 선택
+        # 랜덤으로 2개 선택 (중복 방지)
+        if len(sample_images) < 2:
+            # 이미지가 부족할 경우 기본 이미지 사용
+            return get_fallback_images()
+        
         selected_images = random.sample(sample_images, 2)
+        # 두 이미지가 같은 URL을 가지지 않도록 확인
+        while selected_images[0]['url'] == selected_images[1]['url']:
+            selected_images = random.sample(sample_images, 2)
+        
         return selected_images[0], selected_images[1]
         
     except Exception as e:
         print(f"Error fetching images: {e}")
         # 기본 이미지 반환
-        return {
-            "url": "https://via.placeholder.com/800x600/4CAF50/FFFFFF?text=Image+1",
-            "alt": "Sample image for creative writing"
-        }, {
-            "url": "https://via.placeholder.com/800x600/2196F3/FFFFFF?text=Image+2",
-            "alt": "Another sample image for inspiration"
-        }
+        return get_fallback_images()
 
 @https_fn.on_request(cors=cors_options)
 def startNewActivity(req: https_fn.Request) -> https_fn.Response:

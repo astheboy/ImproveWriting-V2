@@ -28,6 +28,8 @@
 	let newWordText = '';
 	let newSentenceText = '';
 	let isGeneratingImages = false;
+	let isSubmittingWord = false;
+	let isSubmittingSentence = false;
 	
 	// Activity phases
 	const phases = {
@@ -271,20 +273,23 @@
 	async function submitWord() {
 		if (!newWordText.trim() || currentPhase !== 'word_input_active') return;
 		
-		// Check for duplicate words from the same user
-		const trimmedText = newWordText.trim().toLowerCase();
-		const existingWord = words.find(word => 
-			word.text.toLowerCase().trim() === trimmedText && 
-			word.authorId === currentUser?.uid
-		);
-		
-		if (existingWord) {
-			alert('이미 같은 낱말을 제출했습니다!');
-			newWordText = '';
-			return;
-		}
+		// Prevent multiple submissions
+		if (isSubmittingWord) return;
+		isSubmittingWord = true;
 		
 		try {
+			// Check for duplicate words from the same user
+			const trimmedText = newWordText.trim().toLowerCase();
+			const existingWord = words.find(word => 
+				word.text.toLowerCase().trim() === trimmedText && 
+				word.authorId === currentUser?.uid
+			);
+			
+			if (existingWord) {
+				alert('이미 같은 낱말을 제출했습니다!');
+				return;
+			}
+			
 			const wordData = {
 				text: newWordText.trim(),
 				authorId: currentUser?.uid,
@@ -313,6 +318,8 @@
 		} catch (error) {
 			console.error('Error submitting word:', error);
 			alert('낱말 제출에 실패했습니다.');
+		} finally {
+			isSubmittingWord = false;
 		}
 	}
 
