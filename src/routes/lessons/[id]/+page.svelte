@@ -239,9 +239,10 @@
 		}
 	}
 
-	// Phase management (Teacher only)
+	// Phase management (Teacher or Assignment Mode Student)
 	async function updatePhase(newPhase: string) {
-		if (!isTeacher) return;
+		// Allow phase updates if user is teacher OR in assignment mode
+		if (!isTeacher && !isAssignmentMode) return;
 		
 		try {
 			const lessonRef = doc(db, 'lessons', lessonId);
@@ -400,9 +401,10 @@
 		}
 	}
 
-	// Request AI inspiration (Teacher only)
+	// Request AI inspiration (Teacher or Assignment Mode Student)
 	async function requestAiInspiration() {
-		if (!isTeacher) return;
+		// Allow AI inspiration requests if user is teacher OR in assignment mode
+		if (!isTeacher && !isAssignmentMode) return;
 		
 		try {
 			const getAiInspirationFn = httpsCallable(functions, 'getAiInspirationForLesson');
