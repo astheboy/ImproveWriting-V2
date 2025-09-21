@@ -38,21 +38,29 @@
 
 				classData = { id: classDoc.id, ...classDoc.data() };
 				
-				// 해당 클래스의 활성 레슨 찾기
+				// 해당 클래스의 활성 레슨 찾기 (단순 쿼리 사용)
 				console.log('활성 레슨 검색 시작 - classId:', classId);
 				const lessonsQuery = query(
 					collection(db, 'lessons'),
-					where('classId', '==', classId),
-					where('status', '==', 'active'),
-					orderBy('createdAt', 'desc'),
-					limit(1)
+					where('classId', '==', classId)
 				);
 				
 				const lessonsSnapshot = await getDocs(lessonsQuery);
 				
-				if (!lessonsSnapshot.empty) {
+				// 클라이언트에서 필터링 및 정렬
+				const activeLessons = lessonsSnapshot.docs
+					.map(doc => ({ id: doc.id, ...doc.data() }))
+					.filter(lesson => lesson.status === 'active')
+					.sort((a, b) => {
+						// createdAt 기준 내림차순 정렬
+						const aTime = a.createdAt?.toDate?.() || new Date(0);
+						const bTime = b.createdAt?.toDate?.() || new Date(0);
+						return bTime - aTime;
+					});
+				
+				if (activeLessons.length > 0) {
 					// 활성 레슨이 있으면 레슨 페이지로 리디렉션
-					const activeLesson = lessonsSnapshot.docs[0];
+					const activeLesson = activeLessons[0]; // 가장 최근에 생성된 활성 레슨
 					console.log('활성 레슨 발견:', activeLesson.id);
 					goto(`/lessons/${activeLesson.id}`);
 					return;
