@@ -141,32 +141,22 @@
 		);
 		unsubscribes.push(unsubImages);
 
-	// 3. Words listener
-	const wordsRef = collection(db, `lessons/${lessonId}/words`);
-	const wordsQuery = query(wordsRef, orderBy('createdAt', 'asc'));
-	const unsubWords = onSnapshot(wordsQuery, 
-		(snapshot) => {
-			const allWords = snapshot.docs.map(doc => ({
-				id: doc.id,
-				...doc.data()
-			}));
-			
-			// Remove duplicates based on text and authorId combination
-			const uniqueWords = allWords.filter((word, index, arr) => {
-				return arr.findIndex(w => 
-					w.text.toLowerCase().trim() === word.text.toLowerCase().trim() && 
-					w.authorId === word.authorId
-				) === index;
-			});
-			
-			words = uniqueWords;
-			console.log(`Words updated: ${allWords.length} total, ${uniqueWords.length} unique`);
-		},
-		(error) => {
-			console.error('Error in words listener:', error);
-		}
-	);
-	unsubscribes.push(unsubWords);
+		// 3. Words listener
+		const wordsRef = collection(db, `lessons/${lessonId}/words`);
+		const wordsQuery = query(wordsRef, orderBy('createdAt', 'asc'));
+		const unsubWords = onSnapshot(wordsQuery, 
+			(snapshot) => {
+				words = snapshot.docs.map(doc => ({
+					id: doc.id,
+					...doc.data()
+				}));
+				console.log(`Words updated: ${words.length} words loaded`);
+			},
+			(error) => {
+				console.error('Error in words listener:', error);
+			}
+		);
+		unsubscribes.push(unsubWords);
 
 		// 4. Sentences listener
 		const sentencesRef = collection(db, `lessons/${lessonId}/sentences`);
@@ -280,6 +270,19 @@
 	// Submit word (Student)
 	async function submitWord() {
 		if (!newWordText.trim() || currentPhase !== 'word_input_active') return;
+		
+		// Check for duplicate words from the same user
+		const trimmedText = newWordText.trim().toLowerCase();
+		const existingWord = words.find(word => 
+			word.text.toLowerCase().trim() === trimmedText && 
+			word.authorId === currentUser?.uid
+		);
+		
+		if (existingWord) {
+			alert('이미 같은 낱말을 제출했습니다!');
+			newWordText = '';
+			return;
+		}
 		
 		try {
 			const wordData = {
@@ -635,11 +638,35 @@
 						{#if words.length === 0}
 							<p class="text-gray-500 text-center py-4">아직 제출된 낱말이 없습니다</p>
 						{:else}
-							<div class="flex flex-wrap gap-2">
-								{#each words as word}
-									<span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-										{word.text}
-										<span class="text-xs opacity-70">({word.authorName})</span>
+							{@const wordFrequency = words.reduce((acc, word) => {
+								const normalizedText = word.text.toLowerCase().trim();
+								if (!acc[normalizedText]) {
+									acc[normalizedText] = { text: word.text, count: 0, authors: [] };
+								}
+								acc[normalizedText].count++;
+								if (!acc[normalizedText].authors.includes(word.authorName)) {
+									acc[normalizedText].authors.push(word.authorName);
+								}
+								return acc;
+							}, {})}
+							{@const sortedWords = Object.values(wordFrequency).sort((a, b) => b.count - a.count)}
+							{@const maxCount = sortedWords.length > 0 ? sortedWords[0].count : 1}
+							
+							<p class="text-sm text-gray-600 mb-3">총 {sortedWords.length}개 유형의 낱말</p>
+							<div class="flex flex-wrap gap-2 justify-center">
+								{#each sortedWords as wordData}
+									{@const fontSize = Math.min(0.9 + (wordData.count / maxCount) * 1.2, 2.0)}
+									{@const opacity = Math.max(0.7 + (wordData.count / maxCount) * 0.3, 1.0)}
+									{@const bgIntensity = wordData.count === 1 ? 'bg-green-100' : wordData.count === 2 ? 'bg-green-200' : wordData.count >= 3 ? 'bg-green-300' : 'bg-green-100'}
+									<span 
+										class="{bgIntensity} text-green-800 px-3 py-2 rounded-full transition-all hover:scale-105 cursor-default"
+										style="font-size: {fontSize}rem; opacity: {opacity}; font-weight: {wordData.count > 1 ? '600' : '400'}"
+										title="{wordData.count}번 언급 - {wordData.authors.join(', ')}"
+									>
+										{wordData.text}
+										{#if wordData.count > 1}
+											<span class="text-xs opacity-80 ml-1">×{wordData.count}</span>
+										{/if}
 									</span>
 								{/each}
 							</div>
