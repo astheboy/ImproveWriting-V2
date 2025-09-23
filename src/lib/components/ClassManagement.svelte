@@ -7,6 +7,7 @@ import { onMount, onDestroy } from 'svelte';
 	} from 'firebase/firestore';
 
 	export let classData: any;
+	export let user: any;
 
 	// 수업(레슨) 관련 상태
 	let lessons: any[] = [];
@@ -84,23 +85,27 @@ import { onMount, onDestroy } from 'svelte';
 		try {
 			isSubmitting = true;
 			
-				const lessonData = {
-					classId: classData.id,
-					title: newLessonTitle.trim(),
-					description: newLessonDescription.trim(),
-					type: newLessonType,
-					mode: newLessonMode,
-					status: 'active',
-					createdAt: serverTimestamp(),
-					updatedAt: serverTimestamp(),
-					// 과제형일 때 기본 설정
-					...(newLessonMode === 'assignment' && {
-						activityData: {
-							currentPhase: 'images_only', // 과제형은 바로 이미지 단계부터 시작
-							updatedAt: serverTimestamp()
-						}
-					})
-				};
+			const lessonData = {
+				classId: classData.id,
+				teacherId: user.uid,  // 교사 ID 추가
+				teacherName: user.displayName || user.email, // 교사 이름 추가
+				className: classData.className, // 클래스 이름 추가
+				lessonName: newLessonTitle.trim(), // Dashboard와 호환성을 위해 lessonName도 추가
+				title: newLessonTitle.trim(),
+				description: newLessonDescription.trim(),
+				type: newLessonType,
+				mode: newLessonMode,
+				status: 'active',
+				createdAt: serverTimestamp(),
+				updatedAt: serverTimestamp(),
+				// 과제형일 때 기본 설정
+				...(newLessonMode === 'assignment' && {
+					activityData: {
+						currentPhase: 'images_only', // 과제형은 바로 이미지 단계부터 시작
+						updatedAt: serverTimestamp()
+					}
+				})
+			};
 
 			const docRef = await addDoc(collection(db, 'lessons'), lessonData);
 			

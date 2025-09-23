@@ -355,30 +355,114 @@
 	// 낱말 제출
 	async function submitWord() {
 		if (!wordInput.trim() || isSubmitting) return;
+		
+		// 필수 조건 검증
+		if (!user) {
+			alert('로그인이 필요합니다.');
+			return;
+		}
+		
+		if (!classData?.id && !lessonId) {
+			alert('클래스 또는 레슨 정보가 없습니다.');
+			return;
+		}
 
 		try {
 			isSubmitting = true;
 			const basePath = lessonId ? `lessons/${lessonId}` : `classrooms/${classData.id}`;
-			await addDoc(collection(db, `${basePath}/words`), {
+			const collectionPath = `${basePath}/words`;
+			const wordData = {
 				text: wordInput.trim(),
 				authorId: user.uid,
-				authorName: displayName || '익명',
-				createdAt: serverTimestamp()
+				authorName: displayName || user.displayName || user.email || '익명',
+				createdAt: serverTimestamp(),
+				classId: classData?.id || null,
+				lessonId: lessonId || null
+			};
+			
+			console.log('🚀 낱말 제출 시도:', {
+				collectionPath,
+				wordData,
+				user: {
+					uid: user.uid,
+					isAnonymous: user.isAnonymous,
+					displayName: user.displayName,
+					email: user.email
+				},
+				classData: {
+					id: classData?.id,
+					name: classData?.className || classData?.name
+				},
+				lessonId
 			});
 			
-			// 낱말 작성으로 5 포인트 획득 (콘텐츠와 컴텍스트 포함)
-			const pointAwarded = await awardPoints(5, '낱말 작성', wordInput.trim(), {
-				isEarlyParticipation: false // 필요시 수업 시작 시간 체크 로직 추가
+			// Firestore 연결 테스트를 위한 간단한 읽기 시도
+			try {
+				const testRef = doc(db, 'users', user.uid);
+				await getDoc(testRef);
+				console.log('✅ Firestore 연결 확인됨');
+			} catch (connectError) {
+				console.error('❌ Firestore 연결 오류:', connectError);
+				throw new Error('데이터베이스 연결에 문제가 있습니다.');
+			}
+			
+			// 실제 낱말 제출
+			const wordsCollection = collection(db, collectionPath);
+			const docRef = await addDoc(wordsCollection, wordData);
+			
+			console.log('✅ 낱말 제출 성공:', {
+				docId: docRef.id,
+				word: wordInput.trim(),
+				collectionPath
 			});
-			if (!pointAwarded) {
-				console.warn('낱말 제출은 성공했지만 포인트 지급에 실패했습니다.');
+			
+			// 포인트 지급은 선택사항으로 처리 (실패해도 낱말 제출은 성공)
+			try {
+				const pointAwarded = await awardPoints(5, '낱말 작성', wordInput.trim(), {
+					isEarlyParticipation: false
+				});
+				if (!pointAwarded) {
+					console.warn('낱말 제출은 성공했지만 포인트 지급에 실패했습니다.');
+				}
+			} catch (pointError) {
+				console.warn('포인트 지급 오류 (낱말 제출은 성공):', pointError);
 			}
 			
 			wordInput = '';
-			console.log('낱말 제출 성공:', wordInput.trim());
+			alert('낱말이 성공적으로 제출되었습니다!');
+			
 		} catch (error) {
-			console.error('Error submitting word:', error);
-			alert('낱말 제출에 실패했습니다.');
+			console.error('❌ 낱말 제출 실패:', {
+				error,
+				errorCode: error.code,
+				errorMessage: error.message,
+				errorStack: error.stack,
+				user: {
+					uid: user?.uid,
+					isAnonymous: user?.isAnonymous,
+					email: user?.email
+				},
+				classData: {
+					id: classData?.id,
+					name: classData?.className || classData?.name
+				},
+				lessonId,
+				collectionPath: lessonId ? `lessons/${lessonId}/words` : `classrooms/${classData.id}/words`
+			});
+			
+			// 구체적인 에러 메시지 제공
+			let userMessage = '낱말 제출에 실패했습니다. ';
+			if (error.code === 'permission-denied') {
+				userMessage += '권한이 없습니다. 로그인을 확인해주세요.';
+			} else if (error.code === 'unavailable') {
+				userMessage += '네트워크 연결을 확인해주세요.';
+			} else if (error.message) {
+				userMessage += `에러: ${error.message}`;
+			} else {
+				userMessage += '알 수 없는 오류가 발생했습니다.';
+			}
+			
+			alert(userMessage);
 		} finally {
 			isSubmitting = false;
 		}

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Student Word Submission</title>
+</head>
+<body>
+    <h1>Student Word Submission Debug</h1>
+    
+    <p>To debug the student word submission issue:</p>
+    
+    <ol>
+        <li><strong>Open your web app in a browser:</strong> https://improvewritingapp.web.app</li>
+        <li><strong>Open browser dev tools (F12)</strong></li>
+        <li><strong>Go to Console tab</strong></li>
+        <li><strong>Log in as a teacher and create a class</strong></li>
+        <li><strong>Start a lesson with "words" phase</strong></li>
+        <li><strong>Join as a student (new private/incognito window)</strong></li>
+        <li><strong>Try to submit a word</strong></li>
+        <li><strong>Check console for exact error message</strong></li>
+    </ol>
+    
+    <h2>Things to check in console:</h2>
+    <ul>
+        <li>Authentication status: <code>firebase.auth().currentUser</code></li>
+        <li>Class ID and lesson ID values</li>
+        <li>Exact Firebase error (not just "400 error")</li>
+        <li>Firebase rules evaluation logs</li>
+        <li>Network tab for failed requests</li>
+    </ul>
+    
+    <h2>Possible issues:</h2>
+    <ol>
+        <li><strong>Authentication:</strong> Student not properly authenticated (check auth.currentUser)</li>
+        <li><strong>Path issues:</strong> Collection path is malformed</li>
+        <li><strong>Data validation:</strong> Missing required fields in document</li>
+        <li><strong>Timestamp issues:</strong> serverTimestamp() not working</li>
+        <li><strong>Rules issue:</strong> Despite permissive rules, there might be an edge case</li>
+    </ol>
+    
+    <h2>Debug code to run in console:</h2>
+    <pre><code>
+// Check auth
+console.log("Current user:", firebase.auth().currentUser);
+
+// Check if Firestore is connected
+firebase.firestore().enableNetwork().then(() => {
+    console.log("Firestore connected");
+}).catch(console.error);
+
+// Test basic write (replace 'classrooms/YOUR_CLASS_ID' with actual ID)
+firebase.firestore()
+  .collection('classrooms/YOUR_CLASS_ID/words')
+  .add({
+    text: 'test',
+    authorId: firebase.auth().currentUser.uid,
+    authorName: 'test user',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  })
+  .then((doc) => console.log("Test write success:", doc.id))
+  .catch((error) => console.error("Test write failed:", error));
+    </code></pre>
+</body>
+</html>
