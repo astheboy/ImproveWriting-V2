@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Word Weaver - Teacher Dashboard</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: '#13a4ec',
+            'background-light': '#f6f7f8',
+            'background-dark': '#101c22',
+          },
+          fontFamily: {
+            display: ['Noto Sans KR', 'sans-serif'],
+          },
+          borderRadius: {
+            DEFAULT: '0.25rem',
+            lg: '0.5rem',
+            xl: '0.75rem',
+            full: '9999px',
+          },
+        },
+      },
+    }
+  </script>
+<style>
+    .text-heading-primary {
+      color: #0d171b;
+    }
+    .dark .text-heading-primary {
+      color: #f6f7f8;
+    }
+    .text-body {
+      color: #4c809a;
+    }
+    .dark .text-body {
+      color: #a7bbc7;
+    }
+    .border-subtle {
+      border-color: #cfdfe7;
+    }
+    .dark .border-subtle {
+      border-color: #24353f;
+    }
+    .bg-subtle {
+      background-color: #e7eff3;
+    }
+    .dark .bg-subtle {
+      background-color: #1a2a33;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<header class="flex items-center justify-between p-4 bg-background-light dark:bg-background-dark border-b border-subtle">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-3xl">
+          edit_square
+        </span>
+<h1 class="text-xl font-bold text-heading-primary">선생님 대시보드</h1>
+</div>
+<button class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-heading-primary hover:bg-primary/10 dark:hover:bg-primary/20">
+<span class="material-symbols-outlined">
+          person
+        </span>
+</button>
+</header>
+<main class="flex-grow p-4 space-y-6">
+<section>
+<h2 class="text-2xl font-bold text-heading-primary mb-4">안녕하세요, 김 선생님!</h2>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-subtle dark:bg-background-dark p-4 rounded-xl flex flex-col items-center justify-center text-center border border-subtle">
+<p class="text-3xl font-black text-primary">28</p>
+<p class="text-sm text-body">활성 학생</p>
+</div>
+<div class="bg-subtle dark:bg-background-dark p-4 rounded-xl flex flex-col items-center justify-center text-center border border-subtle">
+<p class="text-3xl font-black text-primary">85%</p>
+<p class="text-sm text-body">과제 완료율</p>
+</div>
+</div>
+</section>
+<section>
+<h3 class="text-xl font-bold text-heading-primary mb-4">학급 개요</h3>
+<div class="space-y-4">
+<div class="bg-white dark:bg-subtle p-4 rounded-xl shadow-sm border border-subtle">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-bold text-heading-primary">1학년 1반</h4>
+<p class="text-sm text-body">학생 15명</p>
+</div>
+<div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
+<div class="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center">
+<span class="text-primary font-bold text-lg">92%</span>
+</div>
+</div>
+</div>
+<p class="text-sm text-body mt-2">평균 과제 완료율</p>
+</div>
+<div class="bg-white dark:bg-subtle p-4 rounded-xl shadow-sm border border-subtle">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-bold text-heading-primary">1학년 2반</h4>
+<p class="text-sm text-body">학생 13명</p>
+</div>
+<div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
+<div class="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center">
+<span class="text-primary font-bold text-lg">78%</span>
+</div>
+</div>
+</div>
+<p class="text-sm text-body mt-2">평균 과제 완료율</p>
+</div>
+</div>
+</section>
+<section>
+<h3 class="text-xl font-bold text-heading-primary mb-4">바로가기</h3>
+<div class="grid grid-cols-2 gap-4">
+<button class="flex flex-col items-center justify-center gap-2 p-4 bg-white dark:bg-subtle rounded-xl shadow-sm border border-subtle text-heading-primary hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-3xl text-primary">
+              groups
+            </span>
+<span class="text-sm font-medium">학급 관리</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-2 p-4 bg-white dark:bg-subtle rounded-xl shadow-sm border border-subtle text-heading-primary hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors">
+<span class="material-symbols-outlined text-3xl text-primary">
+              analytics
+            </span>
+<span class="text-sm font-medium">학생 진도</span>
+</button>
+</div>
+</section>
+<div class="mt-6">
+<button class="w-full flex h-14 min-w-[200px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-xl bg-primary px-6 text-lg font-bold text-white shadow-lg transition-transform hover:scale-105">
+<span class="material-symbols-outlined">
+            add_circle
+          </span>
+<span class="truncate">새 과제 만들기</span>
+</button>
+</div>
+</main>
+<footer class="flex flex-col gap-6 px-5 py-6 text-center bg-background-light dark:bg-background-dark border-t border-subtle">
+<p class="text-sm font-normal text-body">©2024 Word Weaver. All rights reserved.</p>
+</footer>
+</div>
+
+</body></html>

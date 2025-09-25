@@ -7,6 +7,8 @@
 	import QRCode from 'qrcode';
 	import { browser } from '$app/environment';
 	import ClassManagement from './ClassManagement.svelte';
+	// UI Components
+	import { Button, Modal, ModalHeader, ModalContent, ModalFooter, ConfirmDialog, TextInput, Textarea } from '$lib/components/ui';
 
 	// 사용자 및 기본 상태
 	let user: any = null;
@@ -602,19 +604,19 @@
 						<p class="text-gray-500 text-sm">클래스와 수업을 효율적으로 관리하세요</p>
 					</div>
 					<div class="flex items-center gap-3">
-						<button 
+						<Button 
+							variant="filled"
 							on:click={() => showCreateClassModal = true}
-							class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors"
 						>
-							<span>➕</span>
+							<span slot="icon">add</span>
 							새 클래스
-						</button>
-						<button 
+						</Button>
+						<Button 
+							variant="outlined"
 							on:click={handleLogout}
-							class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors"
 						>
 							로그아웃
-						</button>
+						</Button>
 					</div>
 				</div>
 			</div>
@@ -780,12 +782,13 @@
 							<div class="text-gray-400 text-6xl mb-4">📚</div>
 							<p class="text-gray-500 text-lg">아직 생성된 클래스가 없습니다.</p>
 							<p class="text-gray-400 mb-6">새 클래스를 만들어보세요!</p>
-							<button 
+							<Button 
+								variant="filled"
+								size="lg"
 								on:click={() => showCreateClassModal = true}
-								class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium"
 							>
 								새 클래스 만들기
-							</button>
+							</Button>
 						</div>
 					{:else}
 						<div class="bg-white shadow overflow-hidden sm:rounded-md">
@@ -1066,78 +1069,72 @@
 	</div>
 	
 	<!-- 새 클래스 생성 모달 -->
-	{#if showCreateClassModal}
-		<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-			<div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
-				<div class="text-center mb-6">
-					<h3 class="text-2xl font-bold text-gray-800 mb-2">새 클래스 만들기</h3>
-					<p class="text-gray-600">학생들과 함께할 새로운 클래스를 생성하세요.</p>
+	<Modal 
+		open={showCreateClassModal}
+		size="md"
+		on:close={() => showCreateClassModal = false}
+		closeOnEscape={!isLoading}
+		closeOnBackdrop={!isLoading}
+		showCloseButton={!isLoading}
+	>
+		<ModalHeader 
+			title="새 클래스 만들기"
+			subtitle="학생들과 함께할 새로운 클래스를 생성하세요."
+			icon="🏫"
+		/>
+		
+		<form on:submit|preventDefault={createClass}>
+			<ModalContent>
+				<div class="space-y-4">
+					<TextInput
+						bind:value={newClassName}
+						label="클래스 이름"
+						placeholder="예: 6학년 1반 국어 수업"
+						required
+						disabled={isLoading}
+					/>
+					
+					<Textarea
+						bind:value={newClassDescription}
+						label="설명 (선택사항)"
+						placeholder="클래스에 대한 간단한 설명을 입력하세요."
+						rows={3}
+						disabled={isLoading}
+					/>
+					
+					<TextInput
+						type="number"
+						bind:value={maxStudents}
+						label="최대 학생 수"
+						min="1"
+						max="100"
+						disabled={isLoading}
+					/>
 				</div>
-				
-				<form on:submit|preventDefault={createClass} class="space-y-4">
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">클래스 이름 *</label>
-						<input 
-							type="text" 
-							bind:value={newClassName}
-							placeholder="예: 6학년 1반 국어 수업"
-							disabled={isLoading}
-							required
-							class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-						>
-					</div>
-					
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">설명 (선택사항)</label>
-						<textarea 
-							bind:value={newClassDescription}
-							placeholder="클래스에 대한 간단한 설명을 입력하세요."
-							disabled={isLoading}
-							rows="3"
-							class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-						></textarea>
-					</div>
-					
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">최대 학생 수</label>
-						<input 
-							type="number" 
-							bind:value={maxStudents}
-							min="1"
-							max="100"
-							disabled={isLoading}
-							class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-						>
-					</div>
-					
-					<div class="flex gap-3 pt-4">
-						<button 
-							type="button"
-							on:click={() => showCreateClassModal = false}
-							disabled={isLoading}
-							class="flex-1 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-400 text-gray-700 font-bold py-3 px-4 rounded-lg transition-colors"
-						>
-							취소
-						</button>
-						<button 
-							type="submit"
-							disabled={isLoading || !newClassName.trim()}
-							class="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-						>
-							{#if isLoading}
-								<div class="flex items-center justify-center">
-									<div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-									생성중...
-								</div>
-							{:else}
-								클래스 생성
-							{/if}
-						</button>
-					</div>
-				</form>
-			</div>
-		</div>
-	{/if}
+			</ModalContent>
+			
+			<ModalFooter align="between">
+				<Button 
+					type="button"
+					variant="outlined"
+					fullWidth
+					disabled={isLoading}
+					on:click={() => showCreateClassModal = false}
+				>
+					취소
+				</Button>
+				<Button 
+					type="submit"
+					variant="filled"
+					fullWidth
+					loading={isLoading}
+					disabled={!newClassName.trim()}
+				>
+					클래스 생성
+				</Button>
+			</ModalFooter>
+		</form>
+	</Modal>
 	
 	<!-- 클래스 편집 모달 -->
 	{#if showEditModal && editingClass}
@@ -1150,8 +1147,9 @@
 				
 				<form on:submit|preventDefault={saveEditClass} class="space-y-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">클래스 이름 *</label>
+						<label class="block text-sm font-medium text-gray-700 mb-2" for="edit-class-name">클래스 이름 *</label>
 						<input 
+							id="edit-class-name"
 							type="text" 
 							bind:value={editingClass.className}
 							placeholder="클래스 이름을 입력하세요"
@@ -1162,8 +1160,9 @@
 					</div>
 					
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">설명</label>
+						<label class="block text-sm font-medium text-gray-700 mb-2" for="edit-class-description">설명</label>
 						<textarea 
+							id="edit-class-description"
 							bind:value={editingClass.description}
 							placeholder="클래스에 대한 간단한 설명"
 							disabled={isLoading}
@@ -1173,8 +1172,9 @@
 					</div>
 					
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">최대 학생 수</label>
+						<label class="block text-sm font-medium text-gray-700 mb-2" for="edit-max-students">최대 학생 수</label>
 						<input 
+							id="edit-max-students"
 							type="number" 
 							bind:value={editingClass.maxStudents}
 							min="1"

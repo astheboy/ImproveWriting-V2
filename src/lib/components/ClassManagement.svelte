@@ -254,16 +254,18 @@ import { onMount, onDestroy } from 'svelte';
 				<div class="bg-gray-50 rounded-lg p-4 mb-6 border">
 					<div class="space-y-3">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">수업 제목</label>
+							<label class="block text-sm font-medium text-gray-700 mb-1" for="lesson-title">수업 제목</label>
 							<input 
+								id="lesson-title"
 								bind:value={newLessonTitle}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
 								placeholder="예: 계절에 대한 창의적 글쓰기"
 							>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">수업 설명</label>
+							<label class="block text-sm font-medium text-gray-700 mb-1" for="lesson-description">수업 설명</label>
 							<textarea 
+								id="lesson-description"
 								bind:value={newLessonDescription}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
 								rows="2"
@@ -271,8 +273,9 @@ import { onMount, onDestroy } from 'svelte';
 							></textarea>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">수업 유형</label>
+							<label class="block text-sm font-medium text-gray-700 mb-1" for="lesson-type">수업 유형</label>
 							<select 
+								id="lesson-type"
 								bind:value={newLessonType}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
 							>
@@ -282,8 +285,9 @@ import { onMount, onDestroy } from 'svelte';
 							</select>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">수업 모드</label>
+							<label class="block text-sm font-medium text-gray-700 mb-1" for="lesson-mode">수업 모드</label>
 							<select 
+								id="lesson-mode"
 								bind:value={newLessonMode}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
 							>

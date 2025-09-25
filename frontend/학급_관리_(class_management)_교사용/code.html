@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>My Classes</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13a4ec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101c22",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="flex flex-col min-h-screen">
+<header class="sticky top-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm z-10">
+<div class="flex items-center justify-between p-4 border-b border-primary/20 dark:border-primary/30">
+<div class="w-10"></div>
+<h1 class="text-xl font-bold text-gray-800 dark:text-white text-center">My Classes</h1>
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white hover:bg-primary/90 transition-colors">
+<span class="material-symbols-outlined">
+                        add
+                    </span>
+</button>
+</div>
+</header>
+<main class="flex-grow p-4 space-y-4">
+<a class="block bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow" href="#">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="font-bold text-lg text-gray-900 dark:text-white">Grade 3 - Ms. Johnson</h2>
+<p class="text-sm text-gray-500 dark:text-gray-400">15 students</p>
+</div>
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-500">
+                        chevron_right
+                    </span>
+</div>
+<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-sm">
+<button class="flex items-center gap-2 text-primary hover:text-primary/80">
+<span class="material-symbols-outlined text-base">
+                            group
+                        </span>
+                        Manage Students
+                    </button>
+<div class="flex items-center gap-2">
+<button class="text-gray-500 dark:text-gray-400 hover:text-primary">
+<span class="material-symbols-outlined text-base">
+                                edit
+                            </span>
+</button>
+<button class="text-red-500 hover:text-red-700">
+<span class="material-symbols-outlined text-base">
+                                delete
+                            </span>
+</button>
+</div>
+</div>
+</a>
+<a class="block bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow" href="#">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="font-bold text-lg text-gray-900 dark:text-white">Grade 4 - Mr. Davis</h2>
+<p class="text-sm text-gray-500 dark:text-gray-400">20 students</p>
+</div>
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-500">
+                        chevron_right
+                    </span>
+</div>
+<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-sm">
+<button class="flex items-center gap-2 text-primary hover:text-primary/80">
+<span class="material-symbols-outlined text-base">
+                            group
+                        </span>
+                        Manage Students
+                    </button>
+<div class="flex items-center gap-2">
+<button class="text-gray-500 dark:text-gray-400 hover:text-primary">
+<span class="material-symbols-outlined text-base">
+                                edit
+                            </span>
+</button>
+<button class="text-red-500 hover:text-red-700">
+<span class="material-symbols-outlined text-base">
+                                delete
+                            </span>
+</button>
+</div>
+</div>
+</a>
+<a class="block bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow" href="#">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="font-bold text-lg text-gray-900 dark:text-white">Grade 5 - Mrs. Clark</h2>
+<p class="text-sm text-gray-500 dark:text-gray-400">18 students</p>
+</div>
+<span class="material-symbols-outlined text-gray-400 dark:text-gray-500">
+                        chevron_right
+                    </span>
+</div>
+<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-sm">
+<button class="flex items-center gap-2 text-primary hover:text-primary/80">
+<span class="material-symbols-outlined text-base">
+                            group
+                        </span>
+                        Manage Students
+                    </button>
+<div class="flex items-center gap-2">
+<button class="text-gray-500 dark:text-gray-400 hover:text-primary">
+<span class="material-symbols-outlined text-base">
+                                edit
+                            </span>
+</button>
+<button class="text-red-500 hover:text-red-700">
+<span class="material-symbols-outlined text-base">
+                                delete
+                            </span>
+</button>
+</div>
+</div>
+</a>
+</main>
+<footer class="sticky bottom-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm border-t border-primary/20 dark:border-primary/30">
+<nav class="flex justify-around p-2">
+<a class="flex flex-col items-center justify-center w-full text-gray-500 dark:text-gray-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-xs">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full text-primary bg-primary/10 dark:bg-primary/20 rounded-lg py-1" href="#">
+<span class="material-symbols-outlined">school</span>
+<span class="text-xs font-bold">Classes</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full text-gray-500 dark:text-gray-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">face</span>
+<span class="text-xs">Students</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full text-gray-500 dark:text-gray-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-xs">Settings</span>
+</a>
+</nav>
+</footer>
+</div>
+
+</body></html>

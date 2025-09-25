@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Profile Settings</title>
+<link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13a4ec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101c22",
+                        "foreground-light": "#0d171b",
+                        "foreground-dark": "#f6f7f8",
+                        "subtle-light": "#6b7280",
+                        "subtle-dark": "#9ca3af",
+                    },
+                    fontFamily: {
+                        "display": ["Work Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+                'FILL' 0,
+                'wght' 400,
+                'GRAD' 0,
+                'opsz' 24
+        }
+    </style>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-foreground-light dark:text-foreground-dark">
+<div class="flex flex-col h-screen justify-between">
+<div>
+<header class="p-4 flex items-center">
+<button class="p-2 -m-2">
+<span class="material-symbols-outlined text-foreground-light dark:text-foreground-dark">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold text-center flex-1 pr-8">Settings</h1>
+</header>
+<main class="px-4">
+<section class="mt-6">
+<h2 class="text-lg font-bold text-foreground-light dark:text-foreground-dark mb-4">Account</h2>
+<div class="bg-background-light/50 dark:bg-background-dark/50 rounded-lg">
+<div class="flex items-center justify-between p-4 border-b border-background-light/80 dark:border-background-dark/80">
+<div>
+<p class="font-semibold">Email</p>
+<p class="text-sm text-subtle-light dark:text-subtle-dark">jennifer.lee@email.com</p>
+</div>
+<span class="material-symbols-outlined text-subtle-light dark:text-subtle-dark">chevron_right</span>
+</div>
+<div class="flex items-center justify-between p-4">
+<div>
+<p class="font-semibold">Username</p>
+<p class="text-sm text-subtle-light dark:text-subtle-dark">Jennifer Lee</p>
+</div>
+<span class="material-symbols-outlined text-subtle-light dark:text-subtle-dark">chevron_right</span>
+</div>
+</div>
+</section>
+<section class="mt-8">
+<h2 class="text-lg font-bold text-foreground-light dark:text-foreground-dark mb-4">Preferences</h2>
+<div class="bg-background-light/50 dark:bg-background-dark/50 rounded-lg">
+<div class="flex items-center justify-between p-4 border-b border-background-light/80 dark:border-background-dark/80">
+<div>
+<p class="font-semibold">Notifications</p>
+<p class="text-sm text-subtle-light dark:text-subtle-dark">On</p>
+</div>
+<span class="material-symbols-outlined text-subtle-light dark:text-subtle-dark">chevron_right</span>
+</div>
+<div class="flex items-center justify-between p-4">
+<div>
+<p class="font-semibold">Theme</p>
+<p class="text-sm text-subtle-light dark:text-subtle-dark">Light</p>
+</div>
+<span class="material-symbols-outlined text-subtle-light dark:text-subtle-dark">chevron_right</span>
+</div>
+</div>
+</section>
+</main>
+</div>
+<div class="p-4 pb-6">
+<button class="w-full bg-primary text-white font-bold py-3 px-4 rounded-lg hover:bg-primary/90 transition-colors">Save Changes</button>
+</div>
+</div>
+
+</body></html>

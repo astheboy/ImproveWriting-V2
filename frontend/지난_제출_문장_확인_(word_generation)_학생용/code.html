@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Word Weaver - My Writings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#13a4ec",
+            "background-light": "#f6f7f8",
+            "background-dark": "#101c22",
+            "card-light": "#ffffff",
+            "card-dark": "#1a2831",
+          },
+          fontFamily: {
+            "display": ["Work Sans"]
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="flex flex-col h-screen">
+<header class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
+<button class="p-2 text-gray-800 dark:text-gray-200">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-lg font-bold text-gray-900 dark:text-white">My Writings</h1>
+<div class="flex items-center gap-2">
+<button class="p-2 text-gray-800 dark:text-gray-200">
+<span class="material-symbols-outlined">ios_share</span>
+</button>
+</div>
+</header>
+<main class="flex-grow overflow-y-auto px-4 py-6">
+<div class="space-y-4">
+<div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-sm">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-xs text-gray-500 dark:text-gray-400">Word</p>
+<h3 class="text-2xl font-bold text-primary dark:text-primary">Ephemeral</h3>
+</div>
+<button class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+<span class="material-symbols-outlined">delete</span>
+</button>
+</div>
+<p class="mt-3 text-gray-800 dark:text-gray-200">The beauty of the cherry blossoms is ephemeral, lasting only for a short week.</p>
+</div>
+<div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-sm">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-xs text-gray-500 dark:text-gray-400">Word</p>
+<h3 class="text-2xl font-bold text-primary dark:text-primary">Luminous</h3>
+</div>
+<button class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+<span class="material-symbols-outlined">delete</span>
+</button>
+</div>
+<p class="mt-3 text-gray-800 dark:text-gray-200">Her luminous smile lit up the entire room.</p>
+</div>
+<div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-sm">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-xs text-gray-500 dark:text-gray-400">Word</p>
+<h3 class="text-2xl font-bold text-primary dark:text-primary">Serendipity</h3>
+</div>
+<button class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+<span class="material-symbols-outlined">delete</span>
+</button>
+</div>
+<p class="mt-3 text-gray-800 dark:text-gray-200">It was pure serendipity that they found the hidden cafe on a rainy afternoon.</p>
+</div>
+<div class="bg-card-light dark:bg-card-dark p-4 rounded-xl shadow-sm">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-xs text-gray-500 dark:text-gray-400">Word</p>
+<h3 class="text-2xl font-bold text-primary dark:text-primary">Petrichor</h3>
+</div>
+<button class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+<span class="material-symbols-outlined">delete</span>
+</button>
+</div>
+<p class="mt-3 text-gray-800 dark:text-gray-200">The earthy scent of petrichor filled the air after the summer storm.</p>
+</div>
+</div>
+</main>
+<footer class="border-t border-gray-200 dark:border-gray-800 bg-background-light dark:bg-background-dark">
+<nav class="flex justify-around items-center p-2">
+<a class="flex flex-col items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">auto_stories</span>
+<span class="text-xs font-medium">Library</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="text-xs font-medium">Explore</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined text-3xl">add_circle</span>
+<span class="text-xs font-bold">Create</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">military_tech</span>
+<span class="text-xs font-medium">Goals</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-xs font-medium">Profile</span>
+</a>
+</nav>
+</footer>
+</div>
+
+</body></html>

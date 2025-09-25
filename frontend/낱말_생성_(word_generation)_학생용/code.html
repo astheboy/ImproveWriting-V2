@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Word Weaver</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#13a4ec",
+            "background-light": "#f6f7f8",
+            "background-dark": "#101c22",
+          },
+          fontFamily: {
+            "display": ["Work Sans"]
+          },
+          borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="flex flex-col h-screen justify-between">
+<header class="flex items-center p-4">
+<button class="p-2 text-gray-800 dark:text-gray-200">
+<span class="material-symbols-outlined">
+          arrow_back
+        </span>
+</button>
+<h1 class="flex-1 text-center text-lg font-bold text-gray-900 dark:text-white pr-10">Word Weaver</h1>
+</header>
+<main class="flex-grow flex flex-col px-4">
+<div class="w-full aspect-[3/2] rounded-xl overflow-hidden mb-6">
+<img alt="Inspirational image for word generation" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB9h7-ryWLjQczUEFCJd08gIjwD2zfx03Ug1vkn5JkA2_z9GMYe2Zw4BiGxWUd0ypgxzjp0mFhWiBGm-fzzAx-j4joSgtuE8I5lLZE9o6pzBdfmbKjQWPKM53_gKlElX9csPu7uCcCTSDHD2X-k8L-brhZSedZFJRi81z5AbjDS4S80jSFrFbVzx2rmOZolPCQvQsVmqZLj-X6_kZmk5s3ZJsSTXoOzPaWwijhgh26XYcm3wYQ1wgH8CqOdYUrSTLxaExlJ7V3wbA"/>
+</div>
+<div class="flex flex-col gap-4">
+<input class="w-full px-4 py-3 rounded-lg bg-white/50 dark:bg-black/20 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Enter a word" type="text"/>
+<button class="w-full py-3 px-4 rounded-lg bg-primary text-white font-bold text-base shadow-lg hover:bg-primary/90 transition-colors">
+          단어 제출 (Submit Word)
+        </button>
+</div>
+</main>
+<footer class="border-t border-gray-200 dark:border-gray-800 bg-background-light dark:bg-background-dark">
+<nav class="flex justify-around items-center p-2">
+<a class="flex flex-col items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-xs font-medium">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="text-xs font-medium">Explore</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined text-3xl">add_circle</span>
+<span class="text-xs font-bold">Create</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">notifications</span>
+<span class="text-xs font-medium">Updates</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-xs font-medium">Profile</span>
+</a>
+</nav>
+</footer>
+</div>
+
+</body></html>

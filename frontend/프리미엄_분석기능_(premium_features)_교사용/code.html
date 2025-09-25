@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Teacher Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#13a4ec",
+            "background-light": "#f6f7f8",
+            "background-dark": "#101c22",
+            "foreground-light": "#0d171b",
+            "foreground-dark": "#f6f7f8",
+            "subtle-light": "#4c809a",
+            "subtle-dark": "#a1b3be",
+            "success": "#22c55e",
+            "warning": "#f59e0b",
+            "error": "#ef4444"
+          },
+          fontFamily: {
+            "display": ["Work Sans", "sans-serif"]
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+    .text-foreground-light { color: #0d171b; }
+    .dark .text-foreground-dark { color: #f6f7f8; }
+    .text-subtle-light { color: #4c809a; }
+    .dark .text-subtle-dark { color: #a1b3be; }
+    .bg-subtle-light { background-color: #e7eff3; }
+    .dark .bg-subtle-dark { background-color: #1a2e3a; }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="relative flex flex-col min-h-screen w-full">
+<header class="flex items-center justify-between p-4 bg-background-light dark:bg-background-dark sticky top-0 z-10 border-b border-primary/20 dark:border-primary/30">
+<button class="text-foreground-light dark:text-foreground-dark">
+<svg fill="currentColor" height="24" viewBox="0 0 256 256" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM128,120a40,40,0,1,0-40-40A40,40,0,0,0,128,120Zm0,16a24,24,0,1,1,24-24A24,24,0,0,1,128,136Zm56.43-3.23a8,8,0,0,0-10.86,4.32A48.23,48.23,0,0,1,128,160a47.87,47.87,0,0,1-45.57-28.91,8,8,0,1,0-14.86,6.34A63.84,63.84,0,0,0,128,176a64.22,64.22,0,0,0,58.86-38.91A8,8,0,0,0,184.43,132.77Z"></path>
+</svg>
+</button>
+<div class="flex items-center gap-2">
+<h1 class="text-lg font-bold text-foreground-light dark:text-foreground-dark">Mrs. Davis' Class</h1>
+<button class="text-subtle-light dark:text-subtle-dark">
+<span class="material-symbols-outlined">expand_more</span>
+</button>
+</div>
+<button class="text-foreground-light dark:text-foreground-dark">
+<span class="material-symbols-outlined">search</span>
+</button>
+</header>
+<main class="flex-grow px-4 pt-6 pb-4">
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-xl font-bold text-foreground-light dark:text-foreground-dark">Student Progress</h2>
+<div class="flex items-center gap-2">
+<button class="flex items-center gap-1 text-sm text-subtle-light dark:text-subtle-dark">
+<span>Sort By</span>
+<span class="material-symbols-outlined text-base">swap_vert</span>
+</button>
+<button class="text-subtle-light dark:text-subtle-dark">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+</div>
+</div>
+<div class="space-y-3">
+<div class="p-4 rounded-lg bg-white dark:bg-subtle-dark/50 shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary text-lg">A</div>
+<div>
+<h3 class="font-bold text-foreground-light dark:text-foreground-dark">Alex Green</h3>
+<p class="text-xs text-subtle-light dark:text-subtle-dark">Last active: Today</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-success material-symbols-outlined">check_circle</span>
+<p class="text-sm font-medium text-subtle-light dark:text-subtle-dark">On Track</p>
+</div>
+</div>
+<div class="flex items-center justify-between text-sm">
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mr-4">
+<div class="bg-success h-2.5 rounded-full" style="width: 85%"></div>
+</div>
+<span class="font-semibold text-foreground-light dark:text-foreground-dark">34/40</span>
+</div>
+</div>
+<div class="p-4 rounded-lg bg-white dark:bg-subtle-dark/50 shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-yellow-400/20 flex items-center justify-center font-bold text-yellow-500 text-lg">B</div>
+<div>
+<h3 class="font-bold text-foreground-light dark:text-foreground-dark">Ben Carter</h3>
+<p class="text-xs text-subtle-light dark:text-subtle-dark">Last active: Yesterday</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-warning material-symbols-outlined">warning</span>
+<p class="text-sm font-medium text-subtle-light dark:text-subtle-dark">Needs Help</p>
+</div>
+</div>
+<div class="flex items-center justify-between text-sm">
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mr-4">
+<div class="bg-warning h-2.5 rounded-full" style="width: 45%"></div>
+</div>
+<span class="font-semibold text-foreground-light dark:text-foreground-dark">18/40</span>
+</div>
+</div>
+<div class="p-4 rounded-lg bg-white dark:bg-subtle-dark/50 shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-red-400/20 flex items-center justify-center font-bold text-red-500 text-lg">C</div>
+<div>
+<h3 class="font-bold text-foreground-light dark:text-foreground-dark">Chloe Davis</h3>
+<p class="text-xs text-subtle-light dark:text-subtle-dark">Last active: 3 days ago</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-error material-symbols-outlined">error</span>
+<p class="text-sm font-medium text-subtle-light dark:text-subtle-dark">Falling Behind</p>
+</div>
+</div>
+<div class="flex items-center justify-between text-sm">
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mr-4">
+<div class="bg-error h-2.5 rounded-full" style="width: 20%"></div>
+</div>
+<span class="font-semibold text-foreground-light dark:text-foreground-dark">8/40</span>
+</div>
+</div>
+<div class="p-4 rounded-lg bg-white dark:bg-subtle-dark/50 shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-green-400/20 flex items-center justify-center font-bold text-green-500 text-lg">D</div>
+<div>
+<h3 class="font-bold text-foreground-light dark:text-foreground-dark">David Miller</h3>
+<p class="text-xs text-subtle-light dark:text-subtle-dark">Last active: Today</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-success material-symbols-outlined">check_circle</span>
+<p class="text-sm font-medium text-subtle-light dark:text-subtle-dark">On Track</p>
+</div>
+</div>
+<div class="flex items-center justify-between text-sm">
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mr-4">
+<div class="bg-success h-2.5 rounded-full" style="width: 95%"></div>
+</div>
+<span class="font-semibold text-foreground-light dark:text-foreground-dark">38/40</span>
+</div>
+</div>
+<div class="p-4 rounded-lg bg-white dark:bg-subtle-dark/50 shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-blue-400/20 flex items-center justify-center font-bold text-blue-500 text-lg">E</div>
+<div>
+<h3 class="font-bold text-foreground-light dark:text-foreground-dark">Emily Wilson</h3>
+<p class="text-xs text-subtle-light dark:text-subtle-dark">Last active: 5 days ago</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-subtle-light dark:text-subtle-dark material-symbols-outlined">hourglass_empty</span>
+<p class="text-sm font-medium text-subtle-light dark:text-subtle-dark">Inactive</p>
+</div>
+</div>
+<div class="flex items-center justify-between text-sm">
+<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mr-4">
+<div class="bg-gray-400 dark:bg-gray-500 h-2.5 rounded-full" style="width: 5%"></div>
+</div>
+<span class="font-semibold text-foreground-light dark:text-foreground-dark">2/40</span>
+</div>
+</div>
+</div>
+</main>
+<footer class="sticky bottom-0 bg-background-light dark:bg-background-dark p-2 border-t border-primary/20 dark:border-primary/30">
+<nav class="flex justify-around">
+<a class="flex flex-col items-center justify-center gap-1 text-primary w-full py-1 rounded-lg" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-xs font-bold">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center gap-1 text-subtle-light dark:text-subtle-dark w-full py-1 rounded-lg" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="text-xs font-medium">Tasks</span>
+</a>
+<a class="flex flex-col items-center justify-center gap-1 text-subtle-light dark:text-subtle-dark w-full py-1 rounded-lg" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="text-xs font-medium">Students</span>
+</a>
+<a class="flex flex-col items-center justify-center gap-1 text-subtle-light dark:text-subtle-dark w-full py-1 rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-xs font-medium">Settings</span>
+</a>
+</nav>
+</footer>
+</div>
+
+</body></html>
